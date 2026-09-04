@@ -26,6 +26,10 @@ export default function AppTabs() {
         <NativeTabs.Trigger.Label>Test</NativeTabs.Trigger.Label>
         <NativeTabs.Trigger.Icon src={require("@/assets/images/tabIcons/home.png")} renderingMode="template" />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="new_person" hidden={true}>
+        <NativeTabs.Trigger.Label>Neu</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon src={require("@/assets/images/tabIcons/home.png")} renderingMode="template" />
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

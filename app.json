@@ -1,16 +1,16 @@
 {
   "expo": {
-    "name": "hault",
-    "slug": "hault",
+    "name": "Hault",
+    "slug": "Hault",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hault",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "infoPlist": {
-        "NSFaceIDUsageDescription": "Erlaube dieser App die Nutzung von Face ID für den schnellen Login."
+        "NSFaceIDUsageDescription": "Erlaube dieser App die Nutzung von Face ID für den Login."
       }
     },
     "android": {
@@ -41,7 +41,8 @@
         {
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID."
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,
