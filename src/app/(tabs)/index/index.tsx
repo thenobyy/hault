@@ -1,4 +1,14 @@
-import { Button, Dimensions, FlatList, Platform, RefreshControl, StyleSheet, Text, View } from "react-native";
+import {
+  Button,
+  Dimensions,
+  FlatList,
+  Platform,
+  Pressable,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -7,9 +17,9 @@ import { WebBadge } from "@/components/web-badge";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { ImageBackground } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link, useRouter } from "expo-router";
+import { Link, Stack, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { db } from "../../db/database";
+import { db } from "../../../../db/database";
 
 type User = {
   id: number;
@@ -48,43 +58,55 @@ export default function HomeScreen() {
           <Button title="+" onPress={() => router.navigate("/new_person")} />
         </View>
         <ThemedView style={styles.heroSection}>
-          <FlatList
-            data={allUsers}
-            style={{ height: "100%", width: "100%" }}
-            numColumns={3}
-            keyExtractor={(user) => user.id.toString()}
-            renderItem={({ item }) => (
-              <Link href="/new_person" style={{ width: "33%", aspectRatio: 1 / 1 }}>
-                <ImageBackground source={item.info} contentFit="cover" style={{ width: "100%" }}>
-                  <LinearGradient
-                    colors={["#00000000", "#000000"]}
-                    locations={[0.5, 1]}
-                    style={{
-                      height: "100%",
-                      flexDirection: "column-reverse",
-                      padding: 5,
-                    }}
-                  >
-                    <Text style={{ color: "white" }}>{item.name}</Text>
-                  </LinearGradient>
-                </ImageBackground>
-              </Link>
-            )}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          />
+          {allUsers ? (
+            <FlatList
+              data={allUsers}
+              style={{ height: "100%", width: "100%" }}
+              numColumns={3}
+              keyExtractor={(user) => user.id.toString()}
+              renderItem={({ item }) => (
+                <Link href="/new_person" style={{ width: "33%", aspectRatio: 1 / 1 }}>
+                  <Pressable style={{ width: "100%" }}>
+                    <ImageBackground source={item.info} contentFit="cover" style={{ width: "100%" }}>
+                      <LinearGradient
+                        colors={["#00000000", "#000000"]}
+                        locations={[0.5, 1]}
+                        style={{
+                          height: "100%",
+                          flexDirection: "column-reverse",
+                          padding: 5,
+                        }}
+                      >
+                        <Text style={{ color: "white" }}>{item.name}</Text>
+                      </LinearGradient>
+                    </ImageBackground>
+                  </Pressable>
+                </Link>
+              )}
+              refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            />
+          ) : (
+            <Text>Keine Einträge</Text>
+          )}
           {/* {allUsers &&
-            allUsers.map((user) => (
-              <Link key={user.id} href="/new_person">
-              <View style={{ borderWidth: 1, borderColor: "pink", padding: 5 }}>
-              <ThemedText type="code">{user.name}</ThemedText>
-                  <Image source={{ uri: user.info }} style={styles.image} />
-                </View>
-              </Link>
-            ))} */}
+              allUsers.map((user) => (
+                <Link key={user.id} href="/new_person">
+                <View style={{ borderWidth: 1, borderColor: "pink", padding: 5 }}>
+                <ThemedText type="code">{user.name}</ThemedText>
+                    <Image source={{ uri: user.info }} style={styles.image} />
+                  </View>
+                </Link>
+              ))} */}
         </ThemedView>
-
         {Platform.OS === "web" && <WebBadge />}
       </SafeAreaView>
+      <Stack>
+        <Stack.Screen name="new_person" options={{ title: "Neu" }} />
+
+        <Stack.Screen name="details" options={{ title: "Details" }} />
+
+        <Stack.Screen name="edit" options={{ title: "Bearbeiten" }} />
+      </Stack>
     </ThemedView>
   );
 }
