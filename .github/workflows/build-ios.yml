@@ -1,0 +1,55 @@
+name: Build unsigned iOS IPA
+
+on:
+  workflow_dispatch:   # manuell im GitHub-Tab "Actions" startbar
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      - name: Repo auschecken
+        uses: actions/checkout@v4
+
+      - name: Node.js einrichten
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Abhängigkeiten installieren
+        run: npm install
+
+      - name: Native iOS-Projekt erzeugen (expo prebuild)
+        run: npx expo prebuild --platform ios --non-interactive
+
+      - name: CocoaPods installieren
+        run: cd ios && pod install
+
+      # Wichtig: Signierung wird hier komplett deaktiviert.
+      # SideStore signiert die IPA später selbst beim Import.
+      - name: Xcode Archive bauen (unsigniert)
+        run: |
+          cd ios
+          xcodebuild -workspace *.xcworkspace \
+            -scheme "$(ls -d *.xcworkspace | sed 's/.xcworkspace//')" \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $PWD/build/App.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            archive
+
+      - name: .app aus dem Archive in .ipa verpacken
+        run: |
+          cd ios/build/App.xcarchive/Products/Applications
+          mkdir Payload
+          mv *.app Payload/
+          zip -r ../../../App-unsigned.ipa Payload
+
+      - name: IPA als Download bereitstellen
+        uses: actions/upload-artifact@v4
+        with:
+          name: App-unsigned-ipa
+          path: ios/build/App-unsigned.ipa
