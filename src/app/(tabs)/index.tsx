@@ -17,14 +17,15 @@ import { WebBadge } from "@/components/web-badge";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { ImageBackground } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { Link, Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { db } from "../../../../db/database";
+import { db } from "../../../db/database";
 
 type User = {
   id: number;
   name: string;
   info: string;
+  main_img: string;
   created_at: string;
 };
 
@@ -65,48 +66,32 @@ export default function HomeScreen() {
               numColumns={3}
               keyExtractor={(user) => user.id.toString()}
               renderItem={({ item }) => (
-                <Link href="/new_person" style={{ width: "33%", aspectRatio: 1 / 1 }}>
-                  <Pressable style={{ width: "100%" }}>
-                    <ImageBackground source={item.info} contentFit="cover" style={{ width: "100%" }}>
-                      <LinearGradient
-                        colors={["#00000000", "#000000"]}
-                        locations={[0.5, 1]}
-                        style={{
-                          height: "100%",
-                          flexDirection: "column-reverse",
-                          padding: 5,
-                        }}
-                      >
-                        <Text style={{ color: "white" }}>{item.name}</Text>
-                      </LinearGradient>
-                    </ImageBackground>
-                  </Pressable>
-                </Link>
+                <Pressable style={{ width: "33%", aspectRatio: 1 / 1 }} onPress={() => router.navigate("/new_person")}>
+                  {/* <Link href="/new_person" style={{ width: "33%", aspectRatio: 1 / 1 }}> */}
+                  <ImageBackground source={item.main_img} contentFit="cover" style={{ width: "100%" }}>
+                    <LinearGradient
+                      colors={["#00000000", "#000000"]}
+                      locations={[0.5, 1]}
+                      style={{
+                        height: "100%",
+                        flexDirection: "column-reverse",
+                        padding: 5,
+                      }}
+                    >
+                      <Text style={{ color: "white" }}>{item.name}</Text>
+                    </LinearGradient>
+                  </ImageBackground>
+                  {/* </Link> */}
+                </Pressable>
               )}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             />
           ) : (
             <Text>Keine Einträge</Text>
           )}
-          {/* {allUsers &&
-              allUsers.map((user) => (
-                <Link key={user.id} href="/new_person">
-                <View style={{ borderWidth: 1, borderColor: "pink", padding: 5 }}>
-                <ThemedText type="code">{user.name}</ThemedText>
-                    <Image source={{ uri: user.info }} style={styles.image} />
-                  </View>
-                </Link>
-              ))} */}
         </ThemedView>
         {Platform.OS === "web" && <WebBadge />}
       </SafeAreaView>
-      <Stack>
-        <Stack.Screen name="new_person" options={{ title: "Neu" }} />
-
-        <Stack.Screen name="details" options={{ title: "Details" }} />
-
-        <Stack.Screen name="edit" options={{ title: "Bearbeiten" }} />
-      </Stack>
     </ThemedView>
   );
 }
