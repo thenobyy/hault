@@ -1,9 +1,19 @@
+import { Directory, Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { Alert, Button, Image, StyleSheet, View } from "react-native";
 
 export default function ImagePickerExample() {
   const [image, setImage] = useState<ImagePickerAsset[] | null>(null);
+
+  function deleteAllFiles() {
+    const dir = new Directory(Paths.document);
+    const files = dir.list();
+
+    for (const file of files) {
+      file.delete();
+    }
+  }
 
   const pickImage = async () => {
     // No permissions request is necessary for launching the image library.
@@ -60,10 +70,11 @@ export default function ImagePickerExample() {
       <Button title="Pick an image from camera roll" onPress={pickImage} />
       <Button title="Take a photo" onPress={takePhoto} />
       {image?.map((img) => (
-        <View style={{ display: "grid", gridTemplate: "3rf" }}>
+        <View>
           <Image source={{ uri: img.uri }} style={styles.image} />
         </View>
       ))}
+      <Button title="Delete all Files" onPress={deleteAllFiles} />
     </View>
   );
 }

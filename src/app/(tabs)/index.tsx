@@ -17,7 +17,8 @@ import { WebBadge } from "@/components/web-badge";
 import { BottomTabInset, MaxContentWidth, Spacing } from "@/constants/theme";
 import { ImageBackground } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
+import { Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { db } from "../../../db/database";
 
@@ -43,6 +44,10 @@ export default function HomeScreen() {
     fetchAllUsers();
   }, [fetchAllUsers]);
 
+  useFocusEffect(() => {
+    fetchAllUsers();
+  });
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await fetchAllUsers();
@@ -59,14 +64,17 @@ export default function HomeScreen() {
           <Button title="+" onPress={() => router.navigate("/new_person")} />
         </View>
         <ThemedView style={styles.heroSection}>
-          {allUsers ? (
+          {allUsers && allUsers?.length > 0 ? (
             <FlatList
               data={allUsers}
               style={{ height: "100%", width: "100%" }}
               numColumns={3}
               keyExtractor={(user) => user.id.toString()}
               renderItem={({ item }) => (
-                <Pressable style={{ width: "33%", aspectRatio: 1 / 1 }} onPress={() => router.navigate("/new_person")}>
+                <Pressable
+                  style={{ width: "33%", aspectRatio: 1 / 1 }}
+                  onPress={() => router.navigate({ pathname: "/persons/[id]", params: { id: item.id } })}
+                >
                   {/* <Link href="/new_person" style={{ width: "33%", aspectRatio: 1 / 1 }}> */}
                   <ImageBackground source={item.main_img} contentFit="cover" style={{ width: "100%" }}>
                     <LinearGradient
@@ -87,7 +95,37 @@ export default function HomeScreen() {
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
             />
           ) : (
-            <Text>Keine Einträge</Text>
+            <View
+              style={{
+                flex: 1,
+                justifyContent: "center",
+                alignItems: "center",
+                width: "100%",
+                height: "100%",
+                gap: 45,
+              }}
+            >
+              <ThemedText type="subtitle">Keine Einträge</ThemedText>
+              <Pressable
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                  backgroundColor: "blue",
+                  borderRadius: 5,
+                  paddingVertical: 5,
+                  paddingHorizontal: 10,
+                }}
+                onPress={() => {
+                  router.navigate("/new_person");
+                }}
+              >
+                <Plus size={20} color={"white"} strokeWidth={3} />
+                <ThemedText type="default" style={{}}>
+                  Neue Person
+                </ThemedText>
+              </Pressable>
+            </View>
           )}
         </ThemedView>
         {Platform.OS === "web" && <WebBadge />}

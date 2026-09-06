@@ -1,3 +1,4 @@
+import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
@@ -33,6 +34,7 @@ export default function RootLayout() {
   if (!isAuthenticated) {
     return (
       <ThemedView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <AnimatedSplashOverlay />
         <ThemedText>App gesperrt!</ThemedText>
         <Button title="Entsperren" onPress={authenticate} />
       </ThemedView>
@@ -41,9 +43,13 @@ export default function RootLayout() {
 
   return (
     <KeyboardProvider>
+      <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="new_person" options={{ presentation: "fullScreenModal" }} />
+        <Stack.Screen name="new_person" options={{ presentation: "fullScreenModal" }}></Stack.Screen>
+        <Stack.Screen name="persons/[id]" options={{ presentation: "fullScreenModal" }}>
+          {/* <Stack.Header blurEffect="systemMaterial" /> */}
+        </Stack.Screen>
       </Stack>
     </KeyboardProvider>
   );
