@@ -36,5 +36,13 @@ export async function initDatabase() {
     version = 2;
   }
 
+  if (version === 2) {
+    await db.execAsync(`
+      ALTER TABLE persons ADD COLUMN images TEXT;
+      PRAGMA user_version = 3;
+      `)
+    version = 3;
+  }
+
   return db;
 }

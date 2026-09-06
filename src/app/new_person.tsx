@@ -15,13 +15,11 @@ export default function NewPerson() {
   const [name, setName] = useState("");
   const [usernames, setUsernames] = useState("");
   const [notes, setNotes] = useState("");
+  const [isVisible, setIsVisible] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   const [image, setImage] = useState<string>("");
-  const [galaryImages, setGalaryImages] = useState<ImagePickerAsset[]>();
-
-  if (galaryImages != undefined) {
-    const images = galaryImages.map((p) => ({ uri: p.uri }));
-  }
+  const [galaryImages, setGalaryImages] = useState<ImagePickerAsset[]>([]);
   const router = useRouter();
 
   const pickImage = async () => {
@@ -154,10 +152,13 @@ export default function NewPerson() {
                 style={{ height: "100%", width: "100%" }}
                 numColumns={3}
                 keyExtractor={(item, index) => String(item.uri ?? item.fileName ?? index)}
-                renderItem={({ item }) => (
+                renderItem={({ item, index }) => (
                   <Pressable
                     style={{ width: "33%", aspectRatio: 1 / 1 }}
-                    onPress={() => router.navigate("/new_person")}
+                    onPress={() => {
+                      setSelectedIndex(index);
+                      setIsVisible(true);
+                    }}
                   >
                     {/* <Link href="/new_person" style={{ width: "33%", aspectRatio: 1 / 1 }}> */}
                     <ImageBackground src={item.uri} style={{ width: "100%", aspectRatio: 1 / 1 }}></ImageBackground>
