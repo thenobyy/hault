@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { BlurView } from "expo-blur";
 import { File, Paths } from "expo-file-system";
 import type { ImagePickerAsset } from "expo-image-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -105,23 +106,31 @@ export default function NewPerson() {
   }
   return (
     <ThemedView style={{ flex: 1, height: "100%" }}>
-      <View
+      <BlurView
+        intensity={80}
+        tint="dark"
         style={{
-          marginTop: 85,
-          marginBottom: 25,
-          paddingHorizontal: 15,
-          width: "100%",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexDirection: "row",
+          paddingTop: 60,
+          paddingBottom: 10,
+          paddingHorizontal: 25,
+
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: "#5a3c3c5e",
+          zIndex: 100,
+          filter: "blur(8px)",
         }}
       >
-        <Pressable onPress={() => router.back()} style={{ width: 24, height: 24 }}>
-          <X size={24} color="white" />
-        </Pressable>
-        <Button title="Speichern" onPress={savePerson} />
-      </View>
-      <SafeAreaView style={{ flex: 1, alignItems: "center", width: "100%" }}>
+        <View style={{ alignItems: "center", justifyContent: "space-between", flexDirection: "row" }}>
+          <Pressable onPress={() => router.back()} style={{ width: 24, height: 24 }}>
+            <X size={24} color="white" />
+          </Pressable>
+          <Button title="Speichern" onPress={savePerson} />
+        </View>
+      </BlurView>
+      <SafeAreaView style={{ flex: 1, alignItems: "center", width: "100%", paddingTop: 55 }}>
         <KeyboardAwareScrollView contentContainerStyle={{ padding: 20, gap: 12 }} bottomOffset={40}>
           <View style={{ width: "100%", flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
             <Pressable

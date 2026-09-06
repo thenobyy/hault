@@ -47,9 +47,12 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="new_person" options={{ presentation: "fullScreenModal" }}></Stack.Screen>
-        <Stack.Screen name="persons/[id]" options={{ presentation: "fullScreenModal" }}>
-          {/* <Stack.Header blurEffect="systemMaterial" /> */}
-        </Stack.Screen>
+        <Stack.Screen
+          name="persons/[id]"
+          options={{
+            presentation: "fullScreenModal",
+          }}
+        />
       </Stack>
     </KeyboardProvider>
   );

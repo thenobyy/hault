@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { BlurView } from "expo-blur";
 import { File, Paths } from "expo-file-system";
 import type { ImagePickerAsset } from "expo-image-picker";
 import * as ImagePicker from "expo-image-picker";
@@ -96,46 +97,94 @@ export default function Persons() {
       return;
     }
 
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images", "videos"],
-      allowsMultipleSelection: true,
-      allowsEditing: false,
-      quality: 1,
-    });
-
-    console.log(result?.assets);
-
-    if (!result.canceled) {
-      let tempImagesArray = [];
-      for (let i = 0; i < result.assets.length; i++) {
-        tempImagesArray.push(result.assets[i].uri);
-      }
-      setGalaryImages([...galaryImages, ...result.assets]);
+    let result;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images", "videos"],
+        allowsMultipleSelection: true,
+        allowsEditing: false,
+        quality: 1,
+      });
+    } catch (e) {
+      Alert.alert(
+        "Fehler beim Laden",
+        "Ein oder mehrere Elemente konnten nicht geladen werden. Bitte erneut versuchen.",
+      );
+      return;
     }
+
+    if (result.canceled) return;
+
+    const copiedAssets: ImagePickerAsset[] = [];
+
+    for (let i = 0; i < result.assets.length; i++) {
+      try {
+        const permanentUri = await saveImagePermanently(result.assets[i].uri, Number(id), Date.now() + i);
+        copiedAssets.push({ ...result.assets[i], uri: permanentUri });
+      } catch (e) {
+        console.log("Konnte Datei nicht kopieren, überspringe:", result.assets[i].uri, e);
+      }
+    }
+
+    setGalaryImages((prev) => [...prev, ...copiedAssets]);
   };
 
   function removeGalaryImage(index: number) {
+    const item = galaryImages[index];
+
+    try {
+      new File(item.uri).delete();
+    } catch (e) {
+      console.log("Datei existierte schon nicht mehr:", item.uri);
+    }
+
     setGalaryImages((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function savePerson() {
     if (!name.trim()) return;
-    const result = await db.runAsync(
-      "UPDATE persons SET name = ?, info = ?, main_img = ?, created_at = ?, usernames = ? WHERE id = ?",
-      [name, notes, image, new Date().toISOString(), usernames, id as string],
-    );
+    const personId = id as string;
 
-    const personId = result.lastInsertRowId;
+    // Alten main_img-Pfad VOR dem Überschreiben holen, um ihn ggf. zu löschen
+    const current = await db.getFirstAsync<{ main_img: string }>("SELECT main_img FROM persons WHERE id = ?", [
+      personId,
+    ]);
+    const oldMainImg = current?.main_img;
 
-    if (image) {
-      const permanentMainImg = await saveImagePermanently(image, personId, 0);
-      await db.runAsync("UPDATE persons SET main_img = ? WHERE id = ?", [permanentMainImg, personId]);
+    let finalMainImg = image;
+    const isNewMainImg = image && !image.startsWith(Paths.document.uri);
+
+    if (isNewMainImg) {
+      finalMainImg = await saveImagePermanently(image, Number(personId), 0);
+
+      if (oldMainImg && oldMainImg !== finalMainImg) {
+        try {
+          new File(oldMainImg).delete();
+        } catch (e) {
+          console.log("Altes Profilbild existierte schon nicht mehr:", oldMainImg);
+        }
+      }
     }
 
-    for (let i = 0; i < galaryImages.length; i++) {
-      const permanentPath = await saveImagePermanently(galaryImages[i].uri, personId, i + 1);
-      await db.runAsync("INSERT INTO photos (person_id, file_path) VALUES (?, ?)", [personId, permanentPath]);
+    await db.runAsync("UPDATE persons SET name = ?, info = ?, main_img = ?, usernames = ? WHERE id = ?", [
+      name,
+      notes,
+      finalMainImg,
+      usernames,
+      personId,
+    ]);
+
+    // Galerie: alle Bilder in galaryImages sind bereits permanent kopiert
+    // (durch pickGalaryImages) bzw. bereits entfernte Dateien sind schon
+    // durch removeGalaryImage() gelöscht worden. Wir müssen nur noch die
+    // photos-Tabelle mit dem aktuellen Stand von galaryImages abgleichen.
+    await db.runAsync("DELETE FROM photos WHERE person_id = ?", [personId]);
+
+    for (const item of galaryImages) {
+      await db.runAsync("INSERT INTO photos (person_id, file_path) VALUES (?, ?)", [personId, item.uri]);
     }
+
+    await getPersonData();
   }
 
   async function deletePerson() {
@@ -174,42 +223,52 @@ export default function Persons() {
 
   return (
     <ThemedView style={{ flex: 1, height: "100%" }}>
-      <View
+      {/* <Stack.Header blurEffect="systemUltraThinMaterialDark" asChild></Stack.Header> */}
+      <BlurView
+        intensity={80}
+        tint="dark"
         style={{
-          marginTop: 85,
-          marginBottom: 25,
-          paddingHorizontal: 15,
-          width: "100%",
-          alignItems: "center",
-          justifyContent: "space-between",
-          flexDirection: "row",
+          paddingTop: 60,
+          paddingBottom: 10,
+          paddingHorizontal: 25,
+
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: "#5a3c3c5e",
+          zIndex: 100,
+          filter: "blur(8px)",
         }}
       >
-        <Pressable onPress={() => router.back()} style={{ width: 24, height: 24 }}>
-          <X size={24} color="white" />
-        </Pressable>
-        {!editable ? (
-          <Button title="Bearbeiten" onPress={() => setEditable(true)} />
-        ) : (
-          <View>
-            <Button
-              title="Abbrechen"
-              onPress={() => {
-                setEditable(false);
-                getPersonData();
-              }}
-            />
-            <Button
-              title="Speichern"
-              onPress={() => {
-                savePerson();
-                setEditable(false);
-              }}
-            />
-          </View>
-        )}
-      </View>
-      <SafeAreaView style={{ flex: 1, alignItems: "center", width: "100%" }}>
+        <View style={{ alignItems: "center", justifyContent: "space-between", flexDirection: "row" }}>
+          <Pressable onPress={() => router.back()} style={{ width: 24, height: 24 }}>
+            <X size={24} color="white" />
+          </Pressable>
+          {!editable ? (
+            <Button title="Bearbeiten" onPress={() => setEditable(true)} />
+          ) : (
+            <View style={{ flexDirection: "row" }}>
+              <Button
+                title="Abbrechen"
+                onPress={() => {
+                  setEditable(false);
+                  getPersonData();
+                }}
+              />
+              <Button
+                title="Speichern"
+                onPress={() => {
+                  savePerson();
+                  setEditable(false);
+                }}
+              />
+            </View>
+          )}
+        </View>
+      </BlurView>
+
+      <SafeAreaView style={{ flex: 1, alignItems: "center", width: "100%", paddingTop: 55 }}>
         <KeyboardAwareScrollView contentContainerStyle={{ padding: 20, gap: 12 }} bottomOffset={40}>
           <View style={{ width: "100%", flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
             <Pressable
@@ -326,19 +385,21 @@ export default function Persons() {
                         justifyContent: "space-between",
                       }}
                     >
-                      <Pressable
-                        onPress={() => {
-                          removeGalaryImage(index.imageIndex);
-                          if (galaryImages.length <= 1) setIsVisible(false);
-                          console.log(index.imageIndex);
-                        }}
-                        style={{ padding: 10 }}
-                      >
-                        <Trash size={24} color="white" />
-                      </Pressable>
                       <Pressable onPress={() => setIsVisible(false)} style={{ padding: 10 }}>
                         <X size={24} color="white" />
                       </Pressable>
+                      {editable && (
+                        <Pressable
+                          onPress={() => {
+                            removeGalaryImage(index.imageIndex);
+                            if (galaryImages.length <= 1) setIsVisible(false);
+                            console.log(index.imageIndex);
+                          }}
+                          style={{ padding: 10 }}
+                        >
+                          <Trash size={24} color="white" />
+                        </Pressable>
+                      )}
                     </View>
                   );
                 }}
