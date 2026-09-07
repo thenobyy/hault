@@ -6,7 +6,7 @@ import * as LocalAuthentication from "expo-local-authentication";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect, useState } from "react";
-import { Button, Platform } from "react-native";
+import { AppState, Button, Platform } from "react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { db } from "../../db/database";
 import { initDatabase } from "../../db/init";
@@ -28,6 +28,24 @@ export default function RootLayout() {
     const result = await db.getAllAsync<{ id: Number; app_lock: number }>(`SELECT * FROM settings`);
     return result[0];
   }
+
+  useEffect(() => {
+    const init = async () => {
+      const settings = await getSettings();
+      if (settings.app_lock === 0) return;
+      const subscription = AppState.addEventListener("change", (nextState) => {
+        if (nextState === "background") {
+          setAuthenticated(false);
+        } else if (nextState === "active") {
+          authenticate();
+        }
+      });
+
+      return () => subscription.remove();
+    };
+
+    init();
+  }, []);
 
   useEffect(() => {
     initDatabase().then(() => setDbReady(true));
