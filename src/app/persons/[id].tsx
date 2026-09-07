@@ -5,7 +5,8 @@ import { File, Paths } from "expo-file-system";
 import type { ImagePickerAsset } from "expo-image-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Trash, X } from "lucide-react-native";
+import * as Sharing from "expo-sharing";
+import { Share, Trash, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Alert, Button, ImageBackground, Pressable, StyleSheet, TextInput, View } from "react-native";
 import ImageView from "react-native-image-viewing";
@@ -27,6 +28,7 @@ export default function Persons() {
   const [name, setName] = useState("");
   const [usernames, setUsernames] = useState("");
   const [notes, setNotes] = useState("");
+  const [date, setDate] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editable, setEditable] = useState(false);
@@ -44,6 +46,9 @@ export default function Persons() {
       setName(result.name);
       setUsernames(result.usernames);
       setNotes(result.info);
+      const [date, _time] = result.created_at.split("T");
+      const [sek, min, h] = date.split("-");
+      setDate(h + "." + min + "." + sek);
     }
 
     const galary = await db.getAllAsync<{ id: number; person_id: number; file_path: string }>(
@@ -222,7 +227,6 @@ export default function Persons() {
 
   return (
     <ThemedView style={{ flex: 1, height: "100%" }}>
-      {/* <Stack.Header blurEffect="systemUltraThinMaterialDark" asChild></Stack.Header> */}
       <BlurView
         intensity={80}
         tint="dark"
@@ -391,12 +395,17 @@ export default function Persons() {
                       <Pressable onPress={() => setIsVisible(false)} style={{ padding: 10 }}>
                         <X size={24} color="white" />
                       </Pressable>
+                      <Pressable
+                        onPress={() => Sharing.shareAsync(galaryImages[index.imageIndex].uri)}
+                        style={{ padding: 10 }}
+                      >
+                        <Share size={24} color="white" />
+                      </Pressable>
                       {editable && (
                         <Pressable
                           onPress={() => {
                             removeGalaryImage(index.imageIndex);
                             if (galaryImages.length <= 1) setIsVisible(false);
-                            console.log(index.imageIndex);
                           }}
                           style={{ padding: 10 }}
                         >
@@ -426,6 +435,9 @@ export default function Persons() {
             <Trash size={24} color="white" />
             <ThemedText>Löschen</ThemedText>
           </Pressable>
+          <ThemedText type="small" style={{ paddingTop: 25, textAlign: "right", color: "#727272" }}>
+            Erstellt am: {date}
+          </ThemedText>
         </KeyboardAwareScrollView>
       </SafeAreaView>
     </ThemedView>

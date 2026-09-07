@@ -1,8 +1,10 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Host, HStack, Toggle, VStack } from "@expo/ui/swift-ui";
+import { Directory, Paths } from "expo-file-system";
+import { RotateCcw } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { db } from "../../../db/database";
 
@@ -32,6 +34,15 @@ export default function SettingsPage() {
     fetchSettings();
   }, []);
 
+  function deleteAllFiles() {
+    const dir = new Directory(Paths.document);
+    const files = dir.list();
+
+    for (const file of files) {
+      file.delete();
+    }
+  }
+
   return (
     <ThemedView style={{ flex: 1 }}>
       <SafeAreaView style={{ flex: 1 }}>
@@ -59,6 +70,23 @@ export default function SettingsPage() {
               </HStack>
             </Host>
           </View>
+          <Pressable
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              backgroundColor: "red",
+              borderRadius: 25,
+              paddingVertical: 20,
+              paddingHorizontal: 10,
+              marginTop: 35,
+            }}
+            onPress={() => deleteAllFiles()}
+          >
+            <RotateCcw size={24} color="white" />
+            <ThemedText>App zurücksetzen</ThemedText>
+          </Pressable>
         </ScrollView>
       </SafeAreaView>
     </ThemedView>

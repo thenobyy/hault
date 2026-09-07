@@ -6,10 +6,14 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "hault",
+    "locales": {
+      "de": "./lang/de.json"
+    },
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/images/icon.png",
       "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
         "NSFaceIDUsageDescription": "Erlaube dieser App die Nutzung von Face ID für den Login."
       }
     },
@@ -32,7 +36,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#8c2929",
-          "image": "./assets/images/icon.png",
+          "image": "./assets/images/logo.png",
           "imageWidth": 76
         }
       ],
@@ -42,7 +46,9 @@
           "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID."
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-sharing",
+      "./plugins/withGermanLocalization.js"
     ],
     "experiments": {
       "typedRoutes": true,
