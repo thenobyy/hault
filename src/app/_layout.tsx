@@ -17,16 +17,27 @@ export default function RootLayout() {
   useDrizzleStudio(db);
   const [dbReady, setDbReady] = useState(false);
   const [isAuthenticated, setAuthenticated] = useState(false);
+  const [userSettings, setUserSettings] = useState<{ app_lock: number }[]>([]);
 
   async function authenticate() {
     const result = await LocalAuthentication.authenticateAsync();
     setAuthenticated(result.success);
   }
 
+  async function getSettings() {
+    const result = await db.getAllAsync<{ id: Number; app_lock: number }>(`SELECT * FROM settings`);
+    return result[0];
+  }
+
   useEffect(() => {
     initDatabase().then(() => setDbReady(true));
-    if (Platform.OS !== "web") authenticate();
-    else setAuthenticated(true);
+    const init = async () => {
+      const settings = await getSettings();
+      if (Platform.OS !== "web" && settings.app_lock === 1) authenticate();
+      else setAuthenticated(true);
+    };
+
+    init();
   }, []);
 
   if (!dbReady) return null;

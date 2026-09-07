@@ -51,7 +51,6 @@ export default function Persons() {
       [id as string],
     );
     if (galary) {
-      console.log(galary.length);
       setGalaryImages(galary.map((g) => ({ uri: g.file_path }) as ImagePickerAsset));
     }
   }
@@ -228,11 +227,12 @@ export default function Persons() {
         intensity={80}
         tint="dark"
         style={{
-          paddingTop: 60,
+          // paddingTop: 60,
           paddingBottom: 10,
           paddingHorizontal: 25,
-
+          height: 110,
           position: "absolute",
+          justifyContent: "flex-end",
           top: 0,
           left: 0,
           right: 0,
@@ -268,7 +268,7 @@ export default function Persons() {
         </View>
       </BlurView>
 
-      <SafeAreaView style={{ flex: 1, alignItems: "center", width: "100%", paddingTop: 55 }}>
+      <SafeAreaView style={{ flex: 1, alignItems: "center", width: "100%", paddingTop: 110 }}>
         <KeyboardAwareScrollView contentContainerStyle={{ padding: 20, gap: 12 }} bottomOffset={40}>
           <View style={{ width: "100%", flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
             <Pressable
@@ -321,9 +321,11 @@ export default function Persons() {
             <View style={{ flex: 1, flexDirection: "row", justifyContent: "space-between" }}>
               <ThemedText type="default">Gallerie</ThemedText>
               <View style={{ transform: [{ rotate: "45deg" }] }}>
-                <Pressable onPress={() => pickGalaryImages()} style={{ width: 24, height: 24 }}>
-                  <X size={24} color="blue" />
-                </Pressable>
+                {editable && (
+                  <Pressable onPress={() => pickGalaryImages()} style={{ width: 24, height: 24 }}>
+                    <X size={24} color="blue" />
+                  </Pressable>
+                )}
               </View>
             </View>
             <Pressable
@@ -335,6 +337,7 @@ export default function Persons() {
                 backgroundColor: "#ffffff5d",
                 overflow: "hidden",
               }}
+              disabled={!editable}
             >
               <View style={{ width: "100%", flexDirection: "row", flexWrap: "wrap" }}>
                 {galaryImages.map((item, index) => (

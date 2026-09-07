@@ -44,5 +44,13 @@ export async function initDatabase() {
     version = 3;
   }
 
+   if (version === 3) {
+    await db.execAsync(`
+      INSERT INTO settings (app_lock) VALUES (true);
+      PRAGMA user_version = 4;
+      `)
+    version = 4;
+  }
+
   return db;
 }
