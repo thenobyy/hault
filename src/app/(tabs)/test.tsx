@@ -1,7 +1,9 @@
+import { ThemedView } from "@/components/themed-view";
 import { Directory, Paths } from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
 import { Alert, Button, Image, StyleSheet, View } from "react-native";
+import "../../../global.css";
 
 export default function ImagePickerExample() {
   const [image, setImage] = useState<ImagePickerAsset[] | null>(null);
@@ -66,16 +68,16 @@ export default function ImagePickerExample() {
   };
 
   return (
-    <View style={styles.container}>
+    <ThemedView style={styles.container}>
       <Button title="Pick an image from camera roll" onPress={pickImage} />
       <Button title="Take a photo" onPress={takePhoto} />
       {image?.map((img) => (
-        <View>
+        <View className="border border">
           <Image source={{ uri: img.uri }} style={styles.image} />
         </View>
       ))}
       <Button title="Delete all Files" onPress={deleteAllFiles} />
-    </View>
+    </ThemedView>
   );
 }
 

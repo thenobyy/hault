@@ -225,6 +225,16 @@ export default function Persons() {
     ]);
   }
 
+  // const rotate90andFlip = async (imageUri: string, index: number) => {
+  //   console.log("rotate" + imageUri + " | " + index);
+  //   const result = await ImageManipulator.manipulateAsync(
+  //     imageUri,
+  //     [{ rotate: 90 }, { flip: ImageManipulator.FlipType.Vertical }],
+  //     { format: ImageManipulator.SaveFormat.PNG },
+  //   );
+  //   galaryImages[index].uri = result.uri;
+  // };
+
   return (
     <ThemedView style={{ flex: 1, height: "100%" }}>
       <BlurView
@@ -373,50 +383,55 @@ export default function Persons() {
                   </View>
                 ))}
               </View>
-
-              <ImageView
-                images={galaryImages}
-                imageIndex={selectedIndex}
-                visible={isVisible}
-                onRequestClose={() => setIsVisible(false)}
-                HeaderComponent={(index) => {
-                  return (
-                    <View
-                      style={{
-                        paddingTop: 60,
-                        paddingBottom: 10,
-                        paddingHorizontal: 25,
-                        backgroundColor: "#00000060",
-                        flex: 1,
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                      }}
+            </Pressable>
+            <ImageView
+              images={galaryImages}
+              imageIndex={selectedIndex}
+              visible={isVisible}
+              onRequestClose={() => setIsVisible(false)}
+              HeaderComponent={(index) => {
+                return (
+                  <View
+                    style={{
+                      paddingTop: 60,
+                      paddingBottom: 10,
+                      paddingHorizontal: 20,
+                      backgroundColor: "#00000060",
+                      flex: 1,
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Pressable onPress={() => setIsVisible(false)} style={{ padding: 10 }}>
+                      <X size={24} color="white" />
+                    </Pressable>
+                    {/* <Pressable
+                      onPress={() => rotate90andFlip(galaryImages[index.imageIndex].uri, index.imageIndex)}
+                      style={{ padding: 10 }}
                     >
-                      <Pressable onPress={() => setIsVisible(false)} style={{ padding: 10 }}>
-                        <X size={24} color="white" />
-                      </Pressable>
+                      <RotateCcw size={24} color="white" />
+                    </Pressable> */}
+                    <Pressable
+                      onPress={() => Sharing.shareAsync(galaryImages[index.imageIndex].uri)}
+                      style={{ padding: 10 }}
+                    >
+                      <Share size={24} color="white" />
+                    </Pressable>
+                    {editable && (
                       <Pressable
-                        onPress={() => Sharing.shareAsync(galaryImages[index.imageIndex].uri)}
+                        onPress={() => {
+                          removeGalaryImage(index.imageIndex);
+                          if (galaryImages.length <= 1) setIsVisible(false);
+                        }}
                         style={{ padding: 10 }}
                       >
-                        <Share size={24} color="white" />
+                        <Trash size={24} color="white" />
                       </Pressable>
-                      {editable && (
-                        <Pressable
-                          onPress={() => {
-                            removeGalaryImage(index.imageIndex);
-                            if (galaryImages.length <= 1) setIsVisible(false);
-                          }}
-                          style={{ padding: 10 }}
-                        >
-                          <Trash size={24} color="white" />
-                        </Pressable>
-                      )}
-                    </View>
-                  );
-                }}
-              />
-            </Pressable>
+                    )}
+                  </View>
+                );
+              }}
+            />
           </View>
           <Pressable
             style={{

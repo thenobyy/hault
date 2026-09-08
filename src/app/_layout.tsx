@@ -5,11 +5,12 @@ import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
 import * as LocalAuthentication from "expo-local-authentication";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AppState, Button, Platform } from "react-native";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 import { db } from "../../db/database";
 import { initDatabase } from "../../db/init";
+import "../../global.css";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -18,10 +19,14 @@ export default function RootLayout() {
   const [dbReady, setDbReady] = useState(false);
   const [isAuthenticated, setAuthenticated] = useState(false);
   const [userSettings, setUserSettings] = useState<{ app_lock: number }[]>([]);
+  const appState = useRef(AppState.currentState);
 
   async function authenticate() {
-    const result = await LocalAuthentication.authenticateAsync();
-    setAuthenticated(result.success);
+    const settings = await getSettings();
+    if (Platform.OS !== "web" && settings.app_lock === 1) {
+      const result = await LocalAuthentication.authenticateAsync();
+      setAuthenticated(result.success);
+    } else setAuthenticated(true);
   }
 
   async function getSettings() {
@@ -30,32 +35,23 @@ export default function RootLayout() {
   }
 
   useEffect(() => {
-    const init = async () => {
-      const settings = await getSettings();
-      if (settings.app_lock === 0) return;
-      const subscription = AppState.addEventListener("change", (nextState) => {
-        if (nextState === "background") {
-          setAuthenticated(false);
-        } else if (nextState === "active") {
-          authenticate();
-        }
-      });
+    const subscription = AppState.addEventListener("change", (nextState) => {
+      const previousState = appState.current;
+      appState.current = nextState;
 
-      return () => subscription.remove();
-    };
+      if (nextState === "background") {
+        setAuthenticated(false);
+      } else if (previousState === "background" && nextState === "active") {
+        authenticate();
+      }
+    });
 
-    init();
+    return () => subscription.remove();
   }, []);
 
   useEffect(() => {
     initDatabase().then(() => setDbReady(true));
-    const init = async () => {
-      const settings = await getSettings();
-      if (Platform.OS !== "web" && settings.app_lock === 1) authenticate();
-      else setAuthenticated(true);
-    };
-
-    init();
+    authenticate();
   }, []);
 
   if (!dbReady) return null;
