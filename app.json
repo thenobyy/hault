@@ -48,7 +48,16 @@
       ],
       "expo-sqlite",
       "expo-sharing",
-      "./plugins/withGermanLocalization.js"
+      "./plugins/withGermanLocalization.js",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true,
+          "barcodeScannerEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

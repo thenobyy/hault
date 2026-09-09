@@ -1,82 +1,73 @@
+import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Directory, Paths } from "expo-file-system";
-import * as ImagePicker from "expo-image-picker";
+import { CameraType, CameraView, useCameraPermissions } from "expo-camera";
+import * as Haptics from "expo-haptics";
 import { useState } from "react";
-import { Alert, Button, Image, StyleSheet, View } from "react-native";
+import { Button, StyleSheet, Text, View } from "react-native";
 import "../../../global.css";
 
 export default function ImagePickerExample() {
-  const [image, setImage] = useState<ImagePickerAsset[] | null>(null);
+  const [facing, setFacing] = useState<CameraType>("back");
+  const [permission, requestPermission] = useCameraPermissions();
+  const [isCameraActive, setCamaraActiv] = useState(false);
+  const [productInfo, setProductInfo] = useState();
 
-  function deleteAllFiles() {
-    const dir = new Directory(Paths.document);
-    const files = dir.list();
-
-    for (const file of files) {
-      file.delete();
-    }
+  if (!permission) {
+    // Camera permissions are still loading.
+    return <View />;
   }
 
-  const pickImage = async () => {
-    // No permissions request is necessary for launching the image library.
-    // Manually request permissions for videos on iOS when `allowsEditing` is set to `false`
-    // and `videoExportPreset` is `'Passthrough'` (the default), ideally before launching the picker
-    // so the app users aren't surprised by a system dialog after picking a video.
-    // See "Invoke permissions for videos" sub section for more details.
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) {
+    // Camera permissions are not granted yet.
+    return (
+      <View style={styles.container}>
+        <Text style={styles.message}>We need your permission to show the camera</Text>
+        <Button onPress={requestPermission} title="grant permission" />
+      </View>
+    );
+  }
 
-    if (!permissionResult.granted) {
-      Alert.alert("Permission required", "Permission to access the media library is required.");
-      return;
-    }
+  function toggleCameraFacing() {
+    setFacing((current) => (current === "back" ? "front" : "back"));
+  }
 
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images", "videos"],
-      allowsMultipleSelection: true,
-      allowsEditing: false,
-      quality: 1,
+  async function fetchProductData(ean: string) {
+    const req = await fetch(`https://world.openfoodfacts.net/api/v2/product/${ean}?fields=ingredients`, {
+      method: "POST",
+      headers: {
+        "User-Agent": "TestAppForNewProject/0.1 (mail@richlack-webdesign.de)",
+      },
     });
-
-    console.log(result);
-
-    if (!result.canceled) {
-      setImage(result.assets);
-    }
-  };
-
-  const takePhoto = async () => {
-    // Camera access always requires the user's permission.
-    // Taking a photo also requires a device with a camera. The iOS Simulator
-    // does not have one, so use a physical device to test this button.
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-
-    if (!permissionResult.granted) {
-      Alert.alert("Permission required", "Permission to access the camera is required.");
-      return;
-    }
-
-    let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: false,
-      quality: 1,
-    });
-
-    console.log(result);
-
-    if (!result.canceled) {
-      setImage(result.assets[0].uri);
-    }
-  };
+    const result = await req.json();
+    console.log(result.product.ingredients[0].vegan);
+    setProductInfo(result);
+  }
 
   return (
     <ThemedView style={styles.container}>
-      <Button title="Pick an image from camera roll" onPress={pickImage} />
-      <Button title="Take a photo" onPress={takePhoto} />
-      {image?.map((img) => (
-        <View className="border border">
-          <Image source={{ uri: img.uri }} style={styles.image} />
+      <View style={styles.viewContainer}>
+        {isCameraActive && (
+          <CameraView
+            style={styles.camera}
+            facing={facing}
+            ratio="1:1"
+            barcodeScannerSettings={{
+              barcodeTypes: ["ean13", "ean8"],
+            }}
+            onBarcodeScanned={(response) => {
+              fetchProductData(response.data);
+              console.log(response.data);
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              setCamaraActiv(false);
+              CameraView.dismissScanner();
+            }}
+          />
+        )}
+        <View>
+          <ThemedText>Vegan: {productInfo?.product.ingredients[0].vegan}</ThemedText>
         </View>
-      ))}
-      <Button title="Delete all Files" onPress={deleteAllFiles} />
+        <Button title="Scanner öffnen" onPress={() => setCamaraActiv(true)} />
+      </View>
     </ThemedView>
   );
 }
@@ -84,11 +75,34 @@ export default function ImagePickerExample() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: "center",
     justifyContent: "center",
   },
-  image: {
-    width: 200,
-    height: 200,
+  viewContainer: {
+    flex: 1,
+    justifyContent: "center",
+  },
+  message: {
+    textAlign: "center",
+    paddingBottom: 10,
+  },
+  camera: {
+    height: "80%",
+  },
+  buttonContainer: {
+    position: "absolute",
+    bottom: 64,
+    flexDirection: "row",
+    backgroundColor: "transparent",
+    width: "100%",
+    paddingHorizontal: 64,
+  },
+  button: {
+    flex: 1,
+    alignItems: "center",
+  },
+  text: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "white",
   },
 });

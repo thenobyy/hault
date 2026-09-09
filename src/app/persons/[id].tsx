@@ -37,6 +37,7 @@ export default function Persons() {
 
   const [image, setImage] = useState<string>("");
   const [galaryImages, setGalaryImages] = useState<ImagePickerAsset[]>([]);
+  const [originalGalaryImages, setOriginalGalaryImages] = useState<ImagePickerAsset[]>([]);
   const router = useRouter();
   const { id } = useLocalSearchParams();
 
@@ -57,7 +58,9 @@ export default function Persons() {
       [id as string],
     );
     if (galary) {
-      setGalaryImages(galary.map((g) => ({ uri: getFullImagePath(g.file_path) }) as ImagePickerAsset));
+      const fullPathImages = galary.map((g) => ({ uri: getFullImagePath(g.file_path) }) as ImagePickerAsset);
+      setGalaryImages(fullPathImages);
+      setOriginalGalaryImages(fullPathImages); // Ausgangszustand ebenfalls setzen
     }
   }
 
@@ -81,7 +84,7 @@ export default function Persons() {
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri as string); // temporärer Picker-Pfad, wird erst bei savePerson() kopiert
+      setImage(result.assets[0].uri as string);
     }
   };
 
@@ -115,9 +118,7 @@ export default function Persons() {
 
     for (let i = 0; i < result.assets.length; i++) {
       try {
-        // saveImagePermanently liefert nur den Dateinamen zurück (DB-Format)
         const filename = await saveImagePermanently(result.assets[i].uri, Number(id), Date.now() + i);
-        // für die Anzeige im State brauchen wir den vollen Pfad
         copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(filename) });
       } catch (e) {
         console.log("Konnte Datei nicht kopieren, überspringe:", result.assets[i].uri, e);
@@ -127,15 +128,9 @@ export default function Persons() {
     setGalaryImages((prev) => [...prev, ...copiedAssets]);
   };
 
+  // Entfernt ein Bild nur visuell aus dem State - die physische Datei wird erst
+  // bei savePerson() (falls tatsächlich gespeichert wird) final gelöscht.
   function removeGalaryImage(index: number) {
-    const item = galaryImages[index];
-
-    try {
-      new File(item.uri).delete(); // item.uri ist im State bereits ein voller Pfad
-    } catch (e) {
-      console.log("Datei existierte schon nicht mehr:", item.uri);
-    }
-
     setGalaryImages((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -143,7 +138,6 @@ export default function Persons() {
     if (!name.trim()) return;
     const personId = id as string;
 
-    // Alten main_img-DATEINAMEN (nicht vollen Pfad!) VOR dem Überschreiben holen
     const current = await db.getFirstAsync<{ main_img: string }>("SELECT main_img FROM persons WHERE id = ?", [
       personId,
     ]);
@@ -153,18 +147,16 @@ export default function Persons() {
     let finalMainImgFilename: string;
 
     if (isNewMainImg) {
-      // frisch ausgewähltes Bild: kopieren, liefert Dateinamen zurück
       finalMainImgFilename = await saveImagePermanently(image, Number(personId), 0);
 
       if (oldMainImgFilename && oldMainImgFilename !== finalMainImgFilename) {
         try {
-          new File(getFullImagePath(oldMainImgFilename)).delete(); // Dateiname -> voller Pfad zum Löschen
+          new File(getFullImagePath(oldMainImgFilename)).delete();
         } catch (e) {
           console.log("Altes Profilbild existierte schon nicht mehr:", oldMainImgFilename);
         }
       }
     } else {
-      // unverändertes Bild: image ist aktuell ein voller Pfad (aus getPersonData) -> zurück auf Dateinamen
       finalMainImgFilename = getFilenameFromPath(image);
     }
 
@@ -176,13 +168,45 @@ export default function Persons() {
       personId,
     ]);
 
+    // Galerie: Bilder, die im Ausgangszustand da waren, jetzt aber nicht mehr in
+    // galaryImages stehen, wurden während der Bearbeitung entfernt -> jetzt final löschen
+    const originalPaths = originalGalaryImages.map((g) => g.uri);
+    const currentPaths = galaryImages.map((g) => g.uri);
+    const removedDuringEdit = originalPaths.filter((p) => !currentPaths.includes(p));
+
+    for (const path of removedDuringEdit) {
+      try {
+        new File(path).delete();
+      } catch (e) {
+        console.log("Datei existierte schon nicht mehr:", path);
+      }
+    }
+
     await db.runAsync("DELETE FROM photos WHERE person_id = ?", [personId]);
 
     for (const item of galaryImages) {
-      const filename = getFilenameFromPath(item.uri); // voller Pfad (State) -> Dateiname (DB)
+      const filename = getFilenameFromPath(item.uri);
       await db.runAsync("INSERT INTO photos (person_id, file_path) VALUES (?, ?)", [personId, filename]);
     }
 
+    await getPersonData();
+  }
+
+  // Neu hinzugefügte (aber nie gespeicherte) Galerie-Bilder werden gelöscht,
+  // der Rest bleibt unangetastet - dann wird der alte DB-Stand neu geladen.
+  async function cancelEditing() {
+    const originalPaths = originalGalaryImages.map((g) => g.uri);
+    const addedDuringEdit = galaryImages.filter((g) => !originalPaths.includes(g.uri));
+
+    for (const item of addedDuringEdit) {
+      try {
+        new File(item.uri).delete();
+      } catch (e) {
+        console.log("Konnte neu kopierte Datei nicht löschen:", item.uri);
+      }
+    }
+
+    setEditable(false);
     await getPersonData();
   }
 
@@ -203,7 +227,6 @@ export default function Persons() {
             [id as string],
           );
 
-          // DB liefert Dateinamen -> für's Löschen jeweils in vollen Pfad umwandeln
           const allFilenames = [person?.main_img, ...photos.map((p) => p.file_path)].filter(Boolean) as string[];
 
           for (const filename of allFilenames) {
@@ -245,16 +268,16 @@ export default function Persons() {
             <X size={24} color="white" />
           </Pressable>
           {!editable ? (
-            <Button title="Bearbeiten" onPress={() => setEditable(true)} />
+            <Button
+              title="Bearbeiten"
+              onPress={() => {
+                setOriginalGalaryImages(galaryImages); // Schnappschuss VOR Bearbeitung
+                setEditable(true);
+              }}
+            />
           ) : (
             <View style={{ flexDirection: "row" }}>
-              <Button
-                title="Abbrechen"
-                onPress={() => {
-                  setEditable(false);
-                  getPersonData();
-                }}
-              />
+              <Button title="Abbrechen" onPress={cancelEditing} />
               <Button
                 title="Speichern"
                 onPress={() => {
