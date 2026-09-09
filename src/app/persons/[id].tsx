@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { getFullImagePath, saveImagePermanently } from "@/components/utils";
+import { getFilenameFromPath, getFullImagePath, saveImagePermanently } from "@/components/utils";
 import { BlurView } from "expo-blur";
 import { File, Paths } from "expo-file-system";
 import type { ImagePickerAsset } from "expo-image-picker";
@@ -43,7 +43,7 @@ export default function Persons() {
   async function getPersonData() {
     const result = await db.getFirstAsync<User>("SELECT * FROM persons WHERE id = ?", [id as string]);
     if (result) {
-      setImage(result.main_img);
+      setImage(getFullImagePath(result.main_img));
       setName(result.name);
       setUsernames(result.usernames);
       setNotes(result.info);
@@ -81,7 +81,7 @@ export default function Persons() {
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0].uri as string);
+      setImage(result.assets[0].uri as string); // temporärer Picker-Pfad, wird erst bei savePerson() kopiert
     }
   };
 
@@ -115,8 +115,10 @@ export default function Persons() {
 
     for (let i = 0; i < result.assets.length; i++) {
       try {
-        const permanentUri = await saveImagePermanently(result.assets[i].uri, Number(id), Date.now() + i);
-        copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(permanentUri) });
+        // saveImagePermanently liefert nur den Dateinamen zurück (DB-Format)
+        const filename = await saveImagePermanently(result.assets[i].uri, Number(id), Date.now() + i);
+        // für die Anzeige im State brauchen wir den vollen Pfad
+        copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(filename) });
       } catch (e) {
         console.log("Konnte Datei nicht kopieren, überspringe:", result.assets[i].uri, e);
       }
@@ -129,7 +131,7 @@ export default function Persons() {
     const item = galaryImages[index];
 
     try {
-      new File(item.uri).delete();
+      new File(item.uri).delete(); // item.uri ist im State bereits ein voller Pfad
     } catch (e) {
       console.log("Datei existierte schon nicht mehr:", item.uri);
     }
@@ -141,43 +143,44 @@ export default function Persons() {
     if (!name.trim()) return;
     const personId = id as string;
 
-    // Alten main_img-Pfad VOR dem Überschreiben holen, um ihn ggf. zu löschen
+    // Alten main_img-DATEINAMEN (nicht vollen Pfad!) VOR dem Überschreiben holen
     const current = await db.getFirstAsync<{ main_img: string }>("SELECT main_img FROM persons WHERE id = ?", [
       personId,
     ]);
-    const oldMainImg = current?.main_img;
+    const oldMainImgFilename = current?.main_img;
 
-    let finalMainImg = image;
     const isNewMainImg = image && !image.startsWith(Paths.document.uri);
+    let finalMainImgFilename: string;
 
     if (isNewMainImg) {
-      finalMainImg = await saveImagePermanently(image, Number(personId), 0);
+      // frisch ausgewähltes Bild: kopieren, liefert Dateinamen zurück
+      finalMainImgFilename = await saveImagePermanently(image, Number(personId), 0);
 
-      if (oldMainImg && oldMainImg !== finalMainImg) {
+      if (oldMainImgFilename && oldMainImgFilename !== finalMainImgFilename) {
         try {
-          new File(oldMainImg).delete();
+          new File(getFullImagePath(oldMainImgFilename)).delete(); // Dateiname -> voller Pfad zum Löschen
         } catch (e) {
-          console.log("Altes Profilbild existierte schon nicht mehr:", oldMainImg);
+          console.log("Altes Profilbild existierte schon nicht mehr:", oldMainImgFilename);
         }
       }
+    } else {
+      // unverändertes Bild: image ist aktuell ein voller Pfad (aus getPersonData) -> zurück auf Dateinamen
+      finalMainImgFilename = getFilenameFromPath(image);
     }
 
     await db.runAsync("UPDATE persons SET name = ?, info = ?, main_img = ?, usernames = ? WHERE id = ?", [
       name,
       notes,
-      finalMainImg,
+      finalMainImgFilename,
       usernames,
       personId,
     ]);
 
-    // Galerie: alle Bilder in galaryImages sind bereits permanent kopiert
-    // (durch pickGalaryImages) bzw. bereits entfernte Dateien sind schon
-    // durch removeGalaryImage() gelöscht worden. Wir müssen nur noch die
-    // photos-Tabelle mit dem aktuellen Stand von galaryImages abgleichen.
     await db.runAsync("DELETE FROM photos WHERE person_id = ?", [personId]);
 
     for (const item of galaryImages) {
-      await db.runAsync("INSERT INTO photos (person_id, file_path) VALUES (?, ?)", [personId, item.uri]);
+      const filename = getFilenameFromPath(item.uri); // voller Pfad (State) -> Dateiname (DB)
+      await db.runAsync("INSERT INTO photos (person_id, file_path) VALUES (?, ?)", [personId, filename]);
     }
 
     await getPersonData();
@@ -200,13 +203,14 @@ export default function Persons() {
             [id as string],
           );
 
-          const allPaths = [person?.main_img, ...photos.map((p) => p.file_path)].filter(Boolean) as string[];
+          // DB liefert Dateinamen -> für's Löschen jeweils in vollen Pfad umwandeln
+          const allFilenames = [person?.main_img, ...photos.map((p) => p.file_path)].filter(Boolean) as string[];
 
-          for (const path of allPaths) {
+          for (const filename of allFilenames) {
             try {
-              new File(path).delete();
+              new File(getFullImagePath(filename)).delete();
             } catch (e) {
-              console.log("Datei existierte schon nicht mehr:", path);
+              console.log("Datei existierte schon nicht mehr:", filename);
             }
           }
 
@@ -217,23 +221,12 @@ export default function Persons() {
     ]);
   }
 
-  // const rotate90andFlip = async (imageUri: string, index: number) => {
-  //   console.log("rotate" + imageUri + " | " + index);
-  //   const result = await ImageManipulator.manipulateAsync(
-  //     imageUri,
-  //     [{ rotate: 90 }, { flip: ImageManipulator.FlipType.Vertical }],
-  //     { format: ImageManipulator.SaveFormat.PNG },
-  //   );
-  //   galaryImages[index].uri = result.uri;
-  // };
-
   return (
     <ThemedView style={{ flex: 1, height: "100%" }}>
       <BlurView
         intensity={80}
         tint="dark"
         style={{
-          // paddingTop: 60,
           paddingBottom: 10,
           paddingHorizontal: 25,
           height: 110,
@@ -288,7 +281,7 @@ export default function Persons() {
               }}
               disabled={!editable}
             >
-              <ImageBackground src={getFullImagePath(image)} style={{ height: "100%" }}></ImageBackground>
+              <ImageBackground src={image} style={{ height: "100%" }}></ImageBackground>
             </Pressable>
           </View>
           <View style={{ width: "100%", gap: 6 }}>
@@ -397,12 +390,6 @@ export default function Persons() {
                     <Pressable onPress={() => setIsVisible(false)} style={{ padding: 10 }}>
                       <X size={24} color="white" />
                     </Pressable>
-                    {/* <Pressable
-                      onPress={() => rotate90andFlip(galaryImages[index.imageIndex].uri, index.imageIndex)}
-                      style={{ padding: 10 }}
-                    >
-                      <RotateCcw size={24} color="white" />
-                    </Pressable> */}
                     <Pressable
                       onPress={() => Sharing.shareAsync(galaryImages[index.imageIndex].uri)}
                       style={{ padding: 10 }}

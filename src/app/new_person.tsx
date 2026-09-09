@@ -1,7 +1,8 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { getFullImagePath, saveImagePermanently } from "@/components/utils";
+import { getFilenameFromPath, getFullImagePath, saveImagePermanently } from "@/components/utils";
 import { BlurView } from "expo-blur";
+import { File } from "expo-file-system";
 import type { ImagePickerAsset } from "expo-image-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -20,9 +21,20 @@ export default function NewPerson() {
   const [isVisible, setIsVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const [image, setImage] = useState<string>("");
-  const [galaryImages, setGalaryImages] = useState<ImagePickerAsset[]>([]);
+  const [image, setImage] = useState<string>(""); // temporärer Picker-Pfad, bis savePerson() kopiert
+  const [galaryImages, setGalaryImages] = useState<ImagePickerAsset[]>([]); // volle, bereits kopierte Pfade
   const router = useRouter();
+
+  function cleanupAndGoBack() {
+    for (const item of galaryImages) {
+      try {
+        new File(item.uri).delete();
+      } catch (e) {
+        console.log("Datei existierte schon nicht mehr:", item.uri);
+      }
+    }
+    router.back();
+  }
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -52,23 +64,49 @@ export default function NewPerson() {
       return;
     }
 
-    let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images", "videos"],
-      allowsMultipleSelection: true,
-      allowsEditing: false,
-      quality: 1,
-    });
-
-    console.log(result?.assets);
-
-    if (!result.canceled) {
-      // galaryImages.push(result.assets);
-      setGalaryImages([...galaryImages, ...result.assets]);
-      // setGalaryImages(result.assets);
+    let result;
+    try {
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images", "videos"],
+        allowsMultipleSelection: true,
+        allowsEditing: false,
+        quality: 1,
+      });
+    } catch (e) {
+      Alert.alert(
+        "Fehler beim Laden",
+        "Ein oder mehrere Elemente konnten nicht geladen werden. Bitte erneut versuchen.",
+      );
+      return;
     }
+
+    if (result.canceled) return;
+
+    // Sofort kopieren (vermeidet den PHPhotosErrorDomain-Bug bei später Nutzung alter Picker-Referenzen).
+    // Da es hier noch keine personId gibt (Person existiert erst nach dem Speichern),
+    // nutzen wir einen Platzhalter (0) im Dateinamen - eindeutig ist er wegen Date.now() trotzdem.
+    const copiedAssets: ImagePickerAsset[] = [];
+    for (let i = 0; i < result.assets.length; i++) {
+      try {
+        const filename = await saveImagePermanently(result.assets[i].uri, 0, Date.now() + i);
+        copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(filename) });
+      } catch (e) {
+        console.log("Konnte Datei nicht kopieren, überspringe:", result.assets[i].uri, e);
+      }
+    }
+
+    setGalaryImages((prev) => [...prev, ...copiedAssets]);
   };
 
   function removeGalaryImage(index: number) {
+    const item = galaryImages[index];
+
+    try {
+      new File(item.uri).delete();
+    } catch (e) {
+      console.log("Datei existierte schon nicht mehr:", item.uri);
+    }
+
     setGalaryImages((prev) => prev.filter((_, i) => i !== index));
   }
 
@@ -76,25 +114,27 @@ export default function NewPerson() {
     if (!name.trim()) return;
     const result = await db.runAsync(
       "INSERT INTO persons (name, info, main_img, created_at, usernames) VALUES (?, ?, ?, ?, ?)",
-      [name, notes, image, new Date().toISOString(), usernames],
+      [name, notes, "", new Date().toISOString(), usernames],
     );
 
     const personId = result.lastInsertRowId;
 
-    // Hauptbild ebenfalls dauerhaft kopieren, statt nur die temporäre URI zu speichern
+    // Hauptbild dauerhaft kopieren, Dateiname (nicht voller Pfad!) in der DB speichern
     if (image) {
-      const permanentMainImg = await saveImagePermanently(image, personId, 0);
-      await db.runAsync("UPDATE persons SET main_img = ? WHERE id = ?", [permanentMainImg, personId]);
+      const filename = await saveImagePermanently(image, personId, 0);
+      await db.runAsync("UPDATE persons SET main_img = ? WHERE id = ?", [filename, personId]);
     }
 
-    // Galerie-Bilder kopieren und in die photos-Tabelle eintragen
-    for (let i = 0; i < galaryImages.length; i++) {
-      const permanentPath = await saveImagePermanently(galaryImages[i].uri, personId, i + 1);
-      await db.runAsync("INSERT INTO photos (person_id, file_path) VALUES (?, ?)", [personId, permanentPath]);
+    // Galerie-Bilder wurden schon beim Auswählen kopiert (galaryImages enthält volle Pfade) ->
+    // hier nur noch Dateinamen extrahieren und in photos eintragen
+    for (const item of galaryImages) {
+      const filename = getFilenameFromPath(item.uri);
+      await db.runAsync("INSERT INTO photos (person_id, file_path) VALUES (?, ?)", [personId, filename]);
     }
 
     router.back();
   }
+
   return (
     <ThemedView style={{ flex: 1, height: "100%" }}>
       <BlurView
@@ -115,7 +155,7 @@ export default function NewPerson() {
         }}
       >
         <View style={{ alignItems: "center", justifyContent: "space-between", flexDirection: "row" }}>
-          <Pressable onPress={() => router.back()} style={{ width: 24, height: 24 }}>
+          <Pressable onPress={cleanupAndGoBack} style={{ width: 24, height: 24 }}>
             <X size={24} color="white" />
           </Pressable>
           <Button title="Speichern" onPress={savePerson} />
@@ -134,7 +174,7 @@ export default function NewPerson() {
                 overflow: "hidden",
               }}
             >
-              <ImageBackground src={getFullImagePath(image)} style={{ height: "100%" }}></ImageBackground>
+              <ImageBackground src={image} style={{ height: "100%" }}></ImageBackground>
             </Pressable>
           </View>
           <View style={{ width: "100%", gap: 6 }}>
@@ -220,7 +260,6 @@ export default function NewPerson() {
                         onPress={() => {
                           removeGalaryImage(index.imageIndex);
                           if (galaryImages.length <= 1) setIsVisible(false);
-                          console.log(index.imageIndex);
                         }}
                         style={{ padding: 10 }}
                       >

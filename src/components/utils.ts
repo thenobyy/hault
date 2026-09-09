@@ -6,6 +6,10 @@ export function getFullImagePath(filename: string | null | undefined): string {
   return new File(Paths.document, filename).uri;
 }
 
+export function getFilenameFromPath(pathOrFilename: string): string {
+  return pathOrFilename.split("/").pop() ?? pathOrFilename;
+}
+
 export async function saveImagePermanently(tempUri: string, personId: number, index: number) {
   const filename = `${personId}_${Date.now()}_${index}.jpg`;
   const sourceFile = new File(tempUri);
