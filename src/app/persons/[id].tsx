@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { getFullImagePath, saveImagePermanently } from "@/components/utils";
 import { BlurView } from "expo-blur";
 import { File, Paths } from "expo-file-system";
 import type { ImagePickerAsset } from "expo-image-picker";
@@ -56,22 +57,13 @@ export default function Persons() {
       [id as string],
     );
     if (galary) {
-      setGalaryImages(galary.map((g) => ({ uri: g.file_path }) as ImagePickerAsset));
+      setGalaryImages(galary.map((g) => ({ uri: getFullImagePath(g.file_path) }) as ImagePickerAsset));
     }
   }
 
   useEffect(() => {
     getPersonData();
   }, [getPersonData]);
-
-  async function saveImagePermanently(tempUri: string, personId: number, index: number) {
-    const filename = `${personId}_${Date.now()}_${index}.jpg`;
-    const sourceFile = new File(tempUri);
-    const destFile = new File(Paths.document, filename);
-
-    sourceFile.copy(destFile);
-    return destFile.uri;
-  }
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -124,7 +116,7 @@ export default function Persons() {
     for (let i = 0; i < result.assets.length; i++) {
       try {
         const permanentUri = await saveImagePermanently(result.assets[i].uri, Number(id), Date.now() + i);
-        copiedAssets.push({ ...result.assets[i], uri: permanentUri });
+        copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(permanentUri) });
       } catch (e) {
         console.log("Konnte Datei nicht kopieren, überspringe:", result.assets[i].uri, e);
       }
@@ -296,7 +288,7 @@ export default function Persons() {
               }}
               disabled={!editable}
             >
-              <ImageBackground src={image} style={{ height: "100%" }}></ImageBackground>
+              <ImageBackground src={getFullImagePath(image)} style={{ height: "100%" }}></ImageBackground>
             </Pressable>
           </View>
           <View style={{ width: "100%", gap: 6 }}>

@@ -1,7 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { getFullImagePath, saveImagePermanently } from "@/components/utils";
 import { BlurView } from "expo-blur";
-import { File, Paths } from "expo-file-system";
 import type { ImagePickerAsset } from "expo-image-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
@@ -23,15 +23,6 @@ export default function NewPerson() {
   const [image, setImage] = useState<string>("");
   const [galaryImages, setGalaryImages] = useState<ImagePickerAsset[]>([]);
   const router = useRouter();
-
-  async function saveImagePermanently(tempUri: string, personId: number, index: number) {
-    const filename = `${personId}_${Date.now()}_${index}.jpg`;
-    const sourceFile = new File(tempUri);
-    const destFile = new File(Paths.document, filename);
-
-    sourceFile.copy(destFile);
-    return destFile.uri;
-  }
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -143,7 +134,7 @@ export default function NewPerson() {
                 overflow: "hidden",
               }}
             >
-              <ImageBackground src={image} style={{ height: "100%" }}></ImageBackground>
+              <ImageBackground src={getFullImagePath(image)} style={{ height: "100%" }}></ImageBackground>
             </Pressable>
           </View>
           <View style={{ width: "100%", gap: 6 }}>

@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { getFullImagePath } from "@/components/utils";
 import { WebBadge } from "@/components/web-badge";
 import { ImageBackground } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
@@ -81,7 +82,11 @@ export default function HomeScreen() {
                   onPress={() => router.navigate({ pathname: "/persons/[id]", params: { id: item.id } })}
                 >
                   {/* <Link href="/new_person" style={{ width: "33%", aspectRatio: 1 / 1 }}> */}
-                  <ImageBackground source={item.main_img} contentFit="cover" style={{ width: "100%" }}>
+                  <ImageBackground
+                    source={getFullImagePath(item.main_img)}
+                    contentFit="cover"
+                    style={{ width: "100%" }}
+                  >
                     <LinearGradient
                       colors={["#00000000", "#000000"]}
                       locations={[0.5, 1]}

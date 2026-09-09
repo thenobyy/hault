@@ -52,5 +52,32 @@ export async function initDatabase() {
     version = 4;
   }
 
+  if (version === 4) {
+    // Migration: absolute Pfade (durch UUID-Wechsel bei Neuinstallation kaputt)
+    // durch reine Dateinamen ersetzen, die zur Laufzeit neu zusammengesetzt werden.
+    const persons = await db.getAllAsync<{ id: number; main_img: string | null }>(
+      "SELECT id, main_img FROM persons"
+    );
+    for (const p of persons) {
+      if (p.main_img && p.main_img.includes("/")) {
+        const filename = p.main_img.split("/").pop();
+        await db.runAsync("UPDATE persons SET main_img = ? WHERE id = ?", [filename ?? "", p.id]);
+      }
+    }
+
+    const photos = await db.getAllAsync<{ id: number; file_path: string | null }>(
+      "SELECT id, file_path FROM photos"
+    );
+    for (const ph of photos) {
+      if (ph.file_path && ph.file_path.includes("/")) {
+        const filename = ph.file_path.split("/").pop();
+        await db.runAsync("UPDATE photos SET file_path = ? WHERE id = ?", [filename ?? "", ph.id]);
+      }
+    }
+
+    await db.execAsync("PRAGMA user_version = 5;");
+    version = 5;
+  }
+
   return db;
 }
