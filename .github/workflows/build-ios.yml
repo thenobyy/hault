@@ -40,6 +40,8 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             archive
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: true
 
       - name: .app aus dem Archive in .ipa verpacken
         run: |
