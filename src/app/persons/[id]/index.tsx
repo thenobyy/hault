@@ -38,6 +38,7 @@ export default function Persons() {
   const [notes, setNotes] = useState("");
   const [date, setDate] = useState("");
   const [isVisible, setIsVisible] = useState(false);
+  const [isMainVisible, setIsMainVisible] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editable, setEditable] = useState(false);
   const [isPresented, setIsPresented] = useState(false);
@@ -45,6 +46,7 @@ export default function Persons() {
   const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
 
   const [image, setImage] = useState<string>("");
+  const [mainImageView, setMainImageView] = useState<GalaryImages[]>([]);
   const [galaryImages, setGalaryImages] = useState<GalaryImages[]>([]);
   const [originalGalaryImages, setOriginalGalaryImages] = useState<GalaryImages[]>([]);
   const router = useRouter();
@@ -60,6 +62,17 @@ export default function Persons() {
       const [date, _time] = result.created_at.split("T");
       const [sek, min, h] = date.split("-");
       setDate(h + "." + min + "." + sek);
+    }
+    if (result?.main_img) {
+      const mimg = [{ uri: getFullImagePath(result.main_img) }];
+      const mimgis = mimg.map(
+        (image) =>
+          ({
+            uri: image.uri,
+          }) as GalaryImages,
+      );
+
+      setMainImageView(mimgis);
     }
 
     const galary = await db.getAllAsync<{ id: number; person_id: number; file_path: string; position: number }>(
@@ -372,11 +385,18 @@ export default function Persons() {
         </View>
       </BlurView>
 
-      <SafeAreaView style={{ flex: 1, alignItems: "center", width: "100%", paddingTop: 110 }}>
+      <SafeAreaView
+        edges={["left", "right", "bottom"]}
+        style={{ flex: 1, alignItems: "center", width: "100%", paddingTop: 110 }}
+      >
         <KeyboardAwareScrollView contentContainerStyle={{ padding: 20, gap: 12 }} bottomOffset={40}>
           <View style={{ width: "100%", flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
             <Pressable
-              onPress={pickImage}
+              onPress={() => {
+                {
+                  editable ? pickImage() : setIsMainVisible(true);
+                }
+              }}
               style={{
                 width: "100%",
                 aspectRatio: 1 / 1,
@@ -384,7 +404,6 @@ export default function Persons() {
                 backgroundColor: "#ffffff5d",
                 overflow: "hidden",
               }}
-              disabled={!editable}
             >
               <ImageBackground src={image} style={{ height: "100%" }}></ImageBackground>
             </Pressable>
@@ -474,6 +493,37 @@ export default function Persons() {
                 ))}
               </View>
             </Pressable>
+            <ImageView
+              images={mainImageView}
+              imageIndex={0}
+              visible={isMainVisible}
+              onRequestClose={() => setIsMainVisible(false)}
+              HeaderComponent={(index) => {
+                return (
+                  <View
+                    style={{
+                      paddingTop: 60,
+                      paddingBottom: 10,
+                      paddingHorizontal: 20,
+                      backgroundColor: "#00000060",
+                      flex: 1,
+                      flexDirection: "row",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Pressable onPress={() => setIsMainVisible(false)} style={{ padding: 10 }}>
+                      <X size={24} color="white" />
+                    </Pressable>
+                    <Pressable
+                      onPress={() => Sharing.shareAsync(galaryImages[index.imageIndex].uri)}
+                      style={{ padding: 10 }}
+                    >
+                      <Share size={24} color="white" />
+                    </Pressable>
+                  </View>
+                );
+              }}
+            />
             <ImageView
               images={galaryImages}
               imageIndex={selectedIndex}

@@ -88,5 +88,15 @@ export async function initDatabase() {
     version = 6;
   }
 
+  if (version === 6) {
+    
+    await db.execAsync(`
+      ALTER TABLE settings ADD COLUMN devMode BOOLEAN NOT NULL DEFAULT false;
+      PRAGMA user_version = 7;
+      `)
+    version = 7;
+  }
+
+
   return db;
 }

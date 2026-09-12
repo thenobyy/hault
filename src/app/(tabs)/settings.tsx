@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { UserSettings } from "@/components/types";
 import { Host, HStack, Toggle, VStack } from "@expo/ui/swift-ui";
 import { Directory, Paths } from "expo-file-system";
 import { RotateCcw } from "lucide-react-native";
@@ -10,13 +11,19 @@ import { db } from "../../../db/database";
 
 export default function SettingsPage() {
   const [faceID, setFaceID] = useState<boolean>();
+  const [devMode, setDevMode] = useState<boolean>();
 
   async function fetchSettings() {
-    const result = await db.getAllAsync<{ app_lock: number }>(`SELECT * FROM settings`);
+    const result = await db.getAllAsync<UserSettings>(`SELECT * FROM settings`);
     if (result[0].app_lock === 1) {
       setFaceID(true);
     } else {
       setFaceID(false);
+    }
+    if (result[0].devMode === 1) {
+      setDevMode(true);
+    } else {
+      setDevMode(false);
     }
   }
 
@@ -25,6 +32,10 @@ export default function SettingsPage() {
     switch (setting) {
       case "app_lock":
         setFaceID(value);
+        break;
+      case "devMode":
+        setDevMode(value);
+        expo.reloadAppAsync("Settings changed");
         break;
     }
     await db.execAsync(`UPDATE settings SET ${setting}=${value}`);
@@ -64,7 +75,14 @@ export default function SettingsPage() {
                     label="Face ID"
                     systemImage="faceid"
                   />
-                  <Toggle label="Enable feature" />
+                  <Toggle
+                    label="Developer Mode"
+                    isOn={devMode}
+                    onIsOnChange={(value) => {
+                      saveSettings(value, "devMode");
+                    }}
+                    systemImage="command"
+                  />
                   <Toggle label="Enable feature" />
                 </VStack>
               </HStack>

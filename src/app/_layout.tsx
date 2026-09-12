@@ -14,15 +14,21 @@ import "../../global.css";
 
 SplashScreen.preventAutoHideAsync();
 
+interface UserSettings {
+  id: number;
+  app_lock: number;
+  devMode: number;
+}
+
 export default function RootLayout() {
   useDrizzleStudio(db);
   const [dbReady, setDbReady] = useState(false);
   const [isAuthenticated, setAuthenticated] = useState(false);
-  const [userSettings, setUserSettings] = useState<{ app_lock: number }[]>([]);
   const appState = useRef(AppState.currentState);
+  let settings: UserSettings;
 
   async function authenticate() {
-    const settings = await getSettings();
+    settings = await getSettings();
     if (Platform.OS !== "web" && settings.app_lock === 1) {
       const result = await LocalAuthentication.authenticateAsync();
       setAuthenticated(result.success);
@@ -30,7 +36,7 @@ export default function RootLayout() {
   }
 
   async function getSettings() {
-    const result = await db.getAllAsync<{ id: Number; app_lock: number }>(`SELECT * FROM settings`);
+    const result = await db.getAllAsync<UserSettings>(`SELECT * FROM settings`);
     return result[0];
   }
 
@@ -50,8 +56,12 @@ export default function RootLayout() {
   }, []);
 
   useEffect(() => {
-    initDatabase().then(() => setDbReady(true));
-    authenticate();
+    const init = async () => {
+      await initDatabase().then(() => setDbReady(true));
+      await authenticate();
+    };
+
+    init();
   }, []);
 
   if (!dbReady) return null;
@@ -70,13 +80,28 @@ export default function RootLayout() {
     <KeyboardProvider>
       <AnimatedSplashOverlay />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="new_person" options={{ presentation: "fullScreenModal" }}></Stack.Screen>
+        <Stack.Screen
+          name="(tabs)"
+          options={{
+            presentation: "fullScreenModal",
+            fullScreenGestureEnabled: true,
+            gestureDirection: "vertical",
+          }}
+        />
+        <Stack.Screen
+          name="new_person"
+          options={{
+            presentation: "fullScreenModal",
+            fullScreenGestureEnabled: true,
+            gestureDirection: "vertical",
+          }}
+        ></Stack.Screen>
         <Stack.Screen
           name="persons/[id]"
           options={{
             presentation: "fullScreenModal",
             fullScreenGestureEnabled: true,
+            gestureDirection: "vertical",
           }}
         />
       </Stack>

@@ -169,7 +169,10 @@ export default function NewPerson() {
           <Button title="Speichern" onPress={savePerson} />
         </View>
       </BlurView>
-      <SafeAreaView style={{ flex: 1, alignItems: "center", width: "100%", paddingTop: 110 }}>
+      <SafeAreaView
+        edges={["left", "right", "bottom"]}
+        style={{ flex: 1, alignItems: "center", width: "100%", paddingTop: 110 }}
+      >
         <KeyboardAwareScrollView contentContainerStyle={{ padding: 20, gap: 12 }} bottomOffset={40}>
           <View style={{ width: "100%", flexDirection: "row", justifyContent: "space-between", gap: 6 }}>
             <Pressable
