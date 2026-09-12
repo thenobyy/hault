@@ -14,6 +14,10 @@ import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { db } from "../../db/database";
 
+interface GalaryImages extends ImagePickerAsset {
+  pos: number;
+}
+
 export default function NewPerson() {
   const [name, setName] = useState("");
   const [usernames, setUsernames] = useState("");
@@ -22,7 +26,7 @@ export default function NewPerson() {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const [image, setImage] = useState<string>(""); // temporärer Picker-Pfad, bis savePerson() kopiert
-  const [galaryImages, setGalaryImages] = useState<ImagePickerAsset[]>([]); // volle, bereits kopierte Pfade
+  const [galaryImages, setGalaryImages] = useState<GalaryImages[]>([]); // volle, bereits kopierte Pfade
   const router = useRouter();
 
   function cleanupAndGoBack() {
@@ -85,11 +89,11 @@ export default function NewPerson() {
     // Sofort kopieren (vermeidet den PHPhotosErrorDomain-Bug bei später Nutzung alter Picker-Referenzen).
     // Da es hier noch keine personId gibt (Person existiert erst nach dem Speichern),
     // nutzen wir einen Platzhalter (0) im Dateinamen - eindeutig ist er wegen Date.now() trotzdem.
-    const copiedAssets: ImagePickerAsset[] = [];
+    const copiedAssets: GalaryImages[] = [];
     for (let i = 0; i < result.assets.length; i++) {
       try {
-        const filename = await saveImagePermanently(result.assets[i].uri, 0, Date.now() + i);
-        copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(filename) });
+        const filename = await saveImagePermanently(result.assets[i].uri, Date.now() + i, i);
+        copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(filename), pos: i });
       } catch (e) {
         console.log("Konnte Datei nicht kopieren, überspringe:", result.assets[i].uri, e);
       }
@@ -127,9 +131,13 @@ export default function NewPerson() {
 
     // Galerie-Bilder wurden schon beim Auswählen kopiert (galaryImages enthält volle Pfade) ->
     // hier nur noch Dateinamen extrahieren und in photos eintragen
-    for (const item of galaryImages) {
+    for (const [index, item] of galaryImages.entries()) {
       const filename = getFilenameFromPath(item.uri);
-      await db.runAsync("INSERT INTO photos (person_id, file_path) VALUES (?, ?)", [personId, filename]);
+      await db.runAsync("INSERT INTO photos (person_id, file_path, position) VALUES (?, ?, ?)", [
+        personId,
+        filename,
+        index,
+      ]);
     }
 
     router.back();

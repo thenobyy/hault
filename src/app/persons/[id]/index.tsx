@@ -1,19 +1,21 @@
+import ImageCropper from "@/components/image-cropper";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getFilenameFromPath, getFullImagePath, saveImagePermanently } from "@/components/utils";
 import { BlurView } from "expo-blur";
 import { File, Paths } from "expo-file-system";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 import type { ImagePickerAsset } from "expo-image-picker";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { Share, Trash, X } from "lucide-react-native";
+import { Crop, RotateCcw, Share, Trash, X } from "lucide-react-native";
 import { useEffect, useState } from "react";
 import { Alert, Button, ImageBackground, Pressable, StyleSheet, TextInput, View } from "react-native";
 import ImageView from "react-native-image-viewing";
 import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { db } from "../../../db/database";
+import { db } from "../../../../db/database";
 
 type User = {
   id: number;
@@ -25,6 +27,11 @@ type User = {
   notes: string;
 };
 
+interface GalaryImages extends ImagePickerAsset {
+  pos: number;
+  dbId?: number;
+}
+
 export default function Persons() {
   const [name, setName] = useState("");
   const [usernames, setUsernames] = useState("");
@@ -34,10 +41,12 @@ export default function Persons() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editable, setEditable] = useState(false);
   const [isPresented, setIsPresented] = useState(false);
+  const [isPending, setPending] = useState(false);
+  const [croppingIndex, setCroppingIndex] = useState<number | null>(null);
 
   const [image, setImage] = useState<string>("");
-  const [galaryImages, setGalaryImages] = useState<ImagePickerAsset[]>([]);
-  const [originalGalaryImages, setOriginalGalaryImages] = useState<ImagePickerAsset[]>([]);
+  const [galaryImages, setGalaryImages] = useState<GalaryImages[]>([]);
+  const [originalGalaryImages, setOriginalGalaryImages] = useState<GalaryImages[]>([]);
   const router = useRouter();
   const { id } = useLocalSearchParams();
 
@@ -53,20 +62,28 @@ export default function Persons() {
       setDate(h + "." + min + "." + sek);
     }
 
-    const galary = await db.getAllAsync<{ id: number; person_id: number; file_path: string }>(
-      "SELECT * FROM photos WHERE person_id = ?",
+    const galary = await db.getAllAsync<{ id: number; person_id: number; file_path: string; position: number }>(
+      "SELECT * FROM photos WHERE person_id = ? ORDER BY position ASC",
       [id as string],
     );
     if (galary) {
-      const fullPathImages = galary.map((g) => ({ uri: getFullImagePath(g.file_path) }) as ImagePickerAsset);
+      const fullPathImages = galary.map(
+        (g) =>
+          ({
+            uri: getFullImagePath(g.file_path),
+            fileName: g.file_path,
+            pos: g.position,
+            dbId: g.id,
+          }) as GalaryImages,
+      );
       setGalaryImages(fullPathImages);
-      setOriginalGalaryImages(fullPathImages); // Ausgangszustand ebenfalls setzen
+      setOriginalGalaryImages(fullPathImages);
     }
   }
 
   useEffect(() => {
     getPersonData();
-  }, [getPersonData]);
+  }, [id]);
 
   const pickImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -114,12 +131,12 @@ export default function Persons() {
 
     if (result.canceled) return;
 
-    const copiedAssets: ImagePickerAsset[] = [];
+    const copiedAssets: GalaryImages[] = [];
 
     for (let i = 0; i < result.assets.length; i++) {
       try {
         const filename = await saveImagePermanently(result.assets[i].uri, Number(id), Date.now() + i);
-        copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(filename) });
+        copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(filename), pos: i });
       } catch (e) {
         console.log("Konnte Datei nicht kopieren, überspringe:", result.assets[i].uri, e);
       }
@@ -128,8 +145,6 @@ export default function Persons() {
     setGalaryImages((prev) => [...prev, ...copiedAssets]);
   };
 
-  // Entfernt ein Bild nur visuell aus dem State - die physische Datei wird erst
-  // bei savePerson() (falls tatsächlich gespeichert wird) final gelöscht.
   function removeGalaryImage(index: number) {
     setGalaryImages((prev) => prev.filter((_, i) => i !== index));
   }
@@ -148,6 +163,7 @@ export default function Persons() {
 
     if (isNewMainImg) {
       finalMainImgFilename = await saveImagePermanently(image, Number(personId), 0);
+      console.log(finalMainImgFilename);
 
       if (oldMainImgFilename && oldMainImgFilename !== finalMainImgFilename) {
         try {
@@ -184,9 +200,13 @@ export default function Persons() {
 
     await db.runAsync("DELETE FROM photos WHERE person_id = ?", [personId]);
 
-    for (const item of galaryImages) {
+    for (const [index, item] of galaryImages.entries()) {
       const filename = getFilenameFromPath(item.uri);
-      await db.runAsync("INSERT INTO photos (person_id, file_path) VALUES (?, ?)", [personId, filename]);
+      await db.runAsync("INSERT INTO photos (person_id, file_path, position) VALUES (?, ?, ?)", [
+        personId,
+        filename,
+        index,
+      ]);
     }
 
     await getPersonData();
@@ -244,6 +264,68 @@ export default function Persons() {
     ]);
   }
 
+  async function rotate90(index: number) {
+    if (isPending) return;
+    setPending(true);
+
+    const personId = id as string;
+    const item = galaryImages[index];
+    const uri = item.uri;
+
+    try {
+      const context = ImageManipulator.manipulate(uri);
+      context.rotate(90);
+      const rendered = await context.renderAsync();
+      const result = await rendered.saveAsync({ format: SaveFormat.PNG });
+
+      const newFileName = await saveImagePermanently(result.uri, Number(personId), index);
+
+      // Nur wenn das Bild schon gespeichert ist (dbId vorhanden), die DB aktualisieren.
+      // Frisch hinzugefügte, noch ungespeicherte Bilder existieren noch nicht in "photos"
+      // und werden erst bei savePerson() ganz normal mit dem (bereits gedrehten) Pfad eingetragen.
+      if (item.dbId) {
+        db.runSync("UPDATE photos SET file_path = ? WHERE id = ?", [newFileName, item.dbId]);
+      }
+
+      const updated = [...galaryImages];
+      updated[index] = { ...item, uri: getFullImagePath(newFileName) };
+      setGalaryImages(updated);
+
+      try {
+        new File(uri).delete();
+      } catch (e) {
+        console.log("Alte Bildversion existierte schon nicht mehr:", uri);
+      }
+    } finally {
+      setPending(false); // läuft jetzt IMMER, auch falls oben was fehlschlägt
+    }
+  }
+
+  async function handleCropDone(newUri: string) {
+    if (croppingIndex === null) return;
+    const personId = id as string;
+    const item = galaryImages[croppingIndex];
+    const oldUri = item.uri;
+
+    const newFileName = await saveImagePermanently(newUri, Number(personId), croppingIndex);
+
+    if (item.dbId) {
+      db.runSync("UPDATE photos SET file_path = ? WHERE id = ?", [newFileName, item.dbId]);
+    }
+
+    const updated = [...galaryImages];
+    updated[croppingIndex] = { ...item, uri: getFullImagePath(newFileName) };
+    setGalaryImages(updated);
+
+    try {
+      new File(oldUri).delete();
+    } catch (e) {
+      console.log("Alte Bildversion existierte schon nicht mehr:", oldUri);
+    }
+
+    setCroppingIndex(null);
+  }
+
   return (
     <ThemedView style={{ flex: 1, height: "100%" }}>
       <BlurView
@@ -271,7 +353,7 @@ export default function Persons() {
             <Button
               title="Bearbeiten"
               onPress={() => {
-                setOriginalGalaryImages(galaryImages); // Schnappschuss VOR Bearbeitung
+                setOriginalGalaryImages(galaryImages);
                 setEditable(true);
               }}
             />
@@ -414,11 +496,28 @@ export default function Persons() {
                       <X size={24} color="white" />
                     </Pressable>
                     <Pressable
+                      onPress={() => {
+                        setIsVisible(false); // Viewer-Modal schließen...
+                        setCroppingIndex(index.imageIndex); // ...bevor der Cropper-Modal aufgeht
+                      }}
+                      style={{ padding: 10 }}
+                    >
+                      <Crop size={24} color="white" />
+                    </Pressable>
+                    <Pressable
+                      onPress={async () => await rotate90(index.imageIndex)}
+                      style={{ padding: 10 }}
+                      disabled={isPending}
+                    >
+                      <RotateCcw size={24} color="white" />
+                    </Pressable>
+                    <Pressable
                       onPress={() => Sharing.shareAsync(galaryImages[index.imageIndex].uri)}
                       style={{ padding: 10 }}
                     >
                       <Share size={24} color="white" />
                     </Pressable>
+
                     {editable && (
                       <Pressable
                         onPress={() => {
@@ -433,6 +532,12 @@ export default function Persons() {
                   </View>
                 );
               }}
+            />
+            <ImageCropper
+              visible={croppingIndex !== null}
+              uri={croppingIndex !== null ? galaryImages[croppingIndex].uri : ""}
+              onCancel={() => setCroppingIndex(null)}
+              onDone={handleCropDone}
             />
           </View>
           <Pressable

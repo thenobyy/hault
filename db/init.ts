@@ -79,5 +79,14 @@ export async function initDatabase() {
     version = 5;
   }
 
+  if (version === 5) {
+    
+    await db.execAsync(`
+      ALTER TABLE photos ADD COLUMN position INTEGER;
+      PRAGMA user_version = 6;
+      `)
+    version = 6;
+  }
+
   return db;
 }

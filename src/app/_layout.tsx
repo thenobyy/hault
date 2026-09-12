@@ -76,6 +76,7 @@ export default function RootLayout() {
           name="persons/[id]"
           options={{
             presentation: "fullScreenModal",
+            fullScreenGestureEnabled: true,
           }}
         />
       </Stack>
