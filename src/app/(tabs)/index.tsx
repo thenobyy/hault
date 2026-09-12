@@ -19,7 +19,7 @@ import { ImageBackground } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Plus } from "lucide-react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { db } from "../../../db/database";
 
 type User = {
@@ -40,13 +40,11 @@ export default function HomeScreen() {
     setAllUsers(users);
   }, []);
 
-  useEffect(() => {
-    fetchAllUsers();
-  }, [fetchAllUsers]);
-
-  useFocusEffect(() => {
-    fetchAllUsers();
-  });
+  useFocusEffect(
+    useCallback(() => {
+      fetchAllUsers();
+    }, [fetchAllUsers]),
+  );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -64,9 +62,7 @@ export default function HomeScreen() {
             paddingHorizontal: 15,
           }}
         >
-          <ThemedText type="subtitle" style={{}}>
-            Alle
-          </ThemedText>
+          <ThemedText type="subtitle">Alle</ThemedText>
           <Button title="+" onPress={() => router.navigate("/new_person")} />
         </View>
         <View style={styles.heroSection}>
@@ -81,7 +77,6 @@ export default function HomeScreen() {
                   style={{ width: "33.33%", aspectRatio: 1 / 1 }}
                   onPress={() => router.navigate({ pathname: "/persons/[id]", params: { id: item.id } })}
                 >
-                  {/* <Link href="/new_person" style={{ width: "33%", aspectRatio: 1 / 1 }}> */}
                   <ImageBackground
                     source={getFullImagePath(item.main_img)}
                     contentFit="cover"
@@ -99,7 +94,6 @@ export default function HomeScreen() {
                       <Text style={{ color: "white" }}>{item.name}</Text>
                     </LinearGradient>
                   </ImageBackground>
-                  {/* </Link> */}
                 </Pressable>
               )}
               refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
@@ -131,9 +125,7 @@ export default function HomeScreen() {
                 }}
               >
                 <Plus size={20} color={"white"} strokeWidth={3} />
-                <ThemedText type="default" style={{}}>
-                  Neue Person
-                </ThemedText>
+                <ThemedText type="default">Neue Person</ThemedText>
               </Pressable>
             </View>
           )}
@@ -147,7 +139,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // justifyContent: "center",
     flexDirection: "row",
   },
   safeArea: {

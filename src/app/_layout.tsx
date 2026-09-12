@@ -1,6 +1,7 @@
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import * as Sentry from "@sentry/react-native";
 import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
 import * as LocalAuthentication from "expo-local-authentication";
 import { Stack } from "expo-router";
@@ -26,6 +27,25 @@ export default function RootLayout() {
   const [isAuthenticated, setAuthenticated] = useState(false);
   const appState = useRef(AppState.currentState);
   let settings: UserSettings;
+
+  Sentry.init({
+    dsn: "https://53fd710bd934b9d5e15bc60b5a6e064d@o4508585788833792.ingest.de.sentry.io/4512074411278416",
+
+    // Adds more context data to events (IP address, cookies, user, etc.)
+    // For more information, visit: https://docs.sentry.io/platforms/react-native/data-management/data-collected/
+    sendDefaultPii: false,
+
+    // Enable Logs
+    enableLogs: true,
+
+    // Configure Session Replay
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1,
+    integrations: [Sentry.mobileReplayIntegration(), Sentry.feedbackIntegration()],
+
+    // uncomment the line below to enable Spotlight (https://spotlightjs.com)
+    // spotlight: __DEV__,
+  });
 
   async function authenticate() {
     settings = await getSettings();

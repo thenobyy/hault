@@ -2,6 +2,7 @@ import ImageCropper from "@/components/image-cropper";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getFilenameFromPath, getFullImagePath, saveImagePermanently } from "@/components/utils";
+import * as Sentry from "@sentry/react-native";
 import { BlurView } from "expo-blur";
 import { File, Paths } from "expo-file-system";
 import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
@@ -139,6 +140,7 @@ export default function Persons() {
         "Fehler beim Laden",
         "Ein oder mehrere Elemente konnten nicht geladen werden. Bitte erneut versuchen.",
       );
+      Sentry.captureException(e);
       return;
     }
 
@@ -152,6 +154,7 @@ export default function Persons() {
         copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(filename), pos: i });
       } catch (e) {
         console.log("Konnte Datei nicht kopieren, überspringe:", result.assets[i].uri, e);
+        Sentry.captureException(e);
       }
     }
 
@@ -183,6 +186,7 @@ export default function Persons() {
           new File(getFullImagePath(oldMainImgFilename)).delete();
         } catch (e) {
           console.log("Altes Profilbild existierte schon nicht mehr:", oldMainImgFilename);
+          Sentry.captureException(e);
         }
       }
     } else {
@@ -208,6 +212,7 @@ export default function Persons() {
         new File(path).delete();
       } catch (e) {
         console.log("Datei existierte schon nicht mehr:", path);
+        Sentry.captureException(e);
       }
     }
 
@@ -236,6 +241,7 @@ export default function Persons() {
         new File(item.uri).delete();
       } catch (e) {
         console.log("Konnte neu kopierte Datei nicht löschen:", item.uri);
+        Sentry.captureException(e);
       }
     }
 
@@ -267,6 +273,7 @@ export default function Persons() {
               new File(getFullImagePath(filename)).delete();
             } catch (e) {
               console.log("Datei existierte schon nicht mehr:", filename);
+              Sentry.captureException(e);
             }
           }
 
@@ -308,6 +315,7 @@ export default function Persons() {
         new File(uri).delete();
       } catch (e) {
         console.log("Alte Bildversion existierte schon nicht mehr:", uri);
+        Sentry.captureException(e);
       }
     } finally {
       setPending(false); // läuft jetzt IMMER, auch falls oben was fehlschlägt
@@ -334,6 +342,7 @@ export default function Persons() {
       new File(oldUri).delete();
     } catch (e) {
       console.log("Alte Bildversion existierte schon nicht mehr:", oldUri);
+      Sentry.captureException(e);
     }
 
     setCroppingIndex(null);

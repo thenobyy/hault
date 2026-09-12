@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { getFilenameFromPath, getFullImagePath, saveImagePermanently } from "@/components/utils";
+import * as Sentry from "@sentry/react-native";
 import { BlurView } from "expo-blur";
 import { File } from "expo-file-system";
 import type { ImagePickerAsset } from "expo-image-picker";
@@ -35,6 +36,7 @@ export default function NewPerson() {
         new File(item.uri).delete();
       } catch (e) {
         console.log("Datei existierte schon nicht mehr:", item.uri);
+        Sentry.captureException(e);
       }
     }
     router.back();
@@ -81,6 +83,7 @@ export default function NewPerson() {
         "Fehler beim Laden",
         "Ein oder mehrere Elemente konnten nicht geladen werden. Bitte erneut versuchen.",
       );
+      Sentry.captureException(e);
       return;
     }
 
@@ -96,6 +99,7 @@ export default function NewPerson() {
         copiedAssets.push({ ...result.assets[i], uri: getFullImagePath(filename), pos: i });
       } catch (e) {
         console.log("Konnte Datei nicht kopieren, überspringe:", result.assets[i].uri, e);
+        Sentry.captureException(e);
       }
     }
 
@@ -109,6 +113,7 @@ export default function NewPerson() {
       new File(item.uri).delete();
     } catch (e) {
       console.log("Datei existierte schon nicht mehr:", item.uri);
+      Sentry.captureException(e);
     }
 
     setGalaryImages((prev) => prev.filter((_, i) => i !== index));

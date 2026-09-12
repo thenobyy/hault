@@ -60,7 +60,16 @@
         }
       ],
       "expo-image",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@sentry/react-native",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "hault",
+          "organization": "richlack-webdesign"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
