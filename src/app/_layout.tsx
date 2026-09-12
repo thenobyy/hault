@@ -115,7 +115,7 @@ export default function RootLayout() {
             fullScreenGestureEnabled: true,
             gestureDirection: "vertical",
           }}
-        ></Stack.Screen>
+        />
         <Stack.Screen
           name="persons/[id]"
           options={{

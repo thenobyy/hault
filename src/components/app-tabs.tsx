@@ -32,7 +32,7 @@ export default function AppTabs({ set }: { set: UserSettings | null }) {
         <NativeTabs.Trigger.Icon sf={{ default: "gear", selected: "gear" }} renderingMode="template" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="search" role="search">
-        <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>Suchen</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
