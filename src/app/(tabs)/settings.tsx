@@ -89,21 +89,31 @@ export default function SettingsPage() {
                 </HStack>
               </Host>
             ) : (
-              <View style={{ flex: 1, width: "auto", padding: 55 }}>
-                <View style={{ flexDirection: "row" }}>
-                  <View style={{ flexDirection: "column", gap: 22 }}>
-                    <Switch
-                      value={faceID}
-                      onValueChange={(value) => {
-                        saveSettings(value, "app_lock");
-                      }}
-                    />
-                    <Switch
-                      value={devMode}
-                      onValueChange={(value) => {
-                        saveSettings(value, "devMode");
-                      }}
-                    />
+              <View style={{ flex: 1, width: "auto" }}>
+                <View style={{ flexDirection: "row", width: "100%" }}>
+                  <View style={{ flexDirection: "column", gap: 22, width: "100%" }}>
+                    <View
+                      style={{ flexDirection: "row", gap: 20, justifyContent: "space-between", alignItems: "center" }}
+                    >
+                      <ThemedText>App sperre</ThemedText>
+                      <Switch
+                        value={faceID}
+                        onValueChange={(value) => {
+                          saveSettings(value, "app_lock");
+                        }}
+                      />
+                    </View>
+                    <View
+                      style={{ flexDirection: "row", gap: 20, justifyContent: "space-between", alignItems: "center" }}
+                    >
+                      <ThemedText>Dev Mode</ThemedText>
+                      <Switch
+                        value={devMode}
+                        onValueChange={(value) => {
+                          saveSettings(value, "devMode");
+                        }}
+                      />
+                    </View>
                     <Switch />
                   </View>
                 </View>

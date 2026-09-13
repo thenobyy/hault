@@ -1,14 +1,4 @@
-import {
-  Button,
-  Dimensions,
-  FlatList,
-  Platform,
-  Pressable,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Dimensions, FlatList, Platform, Pressable, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ThemedText } from "@/components/themed-text";
@@ -59,11 +49,15 @@ export default function HomeScreen() {
           style={{
             flexDirection: "row",
             justifyContent: "space-between",
+            alignItems: "center",
             paddingHorizontal: 15,
           }}
         >
           <ThemedText type="subtitle">Alle</ThemedText>
-          <Button title="+" onPress={() => router.navigate("/new_person")} />
+          <Pressable onPress={() => router.navigate("/new_person")}>
+            <Plus color={"#fff"} />
+          </Pressable>
+          {/* <Button title="+" onPress={() => router.navigate("/new_person")} /> */}
         </View>
         <View style={styles.heroSection}>
           {allUsers && allUsers?.length > 0 ? (

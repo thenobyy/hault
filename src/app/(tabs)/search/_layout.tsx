@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from "expo-router";
-import { useColorScheme } from "react-native";
+import { Platform, useColorScheme } from "react-native";
 
 export default function SearchLayout() {
   const colorScheme = useColorScheme();
@@ -12,11 +12,18 @@ export default function SearchLayout() {
       }}
     >
       <Stack
-        screenOptions={{
-          headerTransparent: true,
-          headerShadowVisible: false,
-          headerTitle: "", // kein Titel-Text mehr sichtbar
-        }}
+        screenOptions={
+          Platform.OS === "ios"
+            ? {
+                headerTransparent: true,
+                headerShadowVisible: false,
+                headerTitle: "",
+              }
+            : {
+                headerTitle: "Suchen",
+                headerShown: false, // Android braucht die Suchleisten-Header-Krücke nicht
+              }
+        }
       />
     </ThemeProvider>
   );

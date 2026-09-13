@@ -10,9 +10,12 @@ export default function AppTabs({ set }: { set: UserSettings | null }) {
 
   return (
     <NativeTabs
-      // backgroundColor={colors.background}
-      indicatorColor={colors.backgroundElement}
-      labelStyle={{ selected: { color: colors.text } }}
+    // backgroundColor={"#0000001c"}
+    // backgroundColor={colors.background}
+    // indicatorColor={"#0000001c"}
+    // indicatorColor={colors.backgroundElement}
+    // labelStyle={{ selected: { color: colors.text } }}
+    // blurEffect="dark"
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>

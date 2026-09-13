@@ -68,7 +68,7 @@ export default function RootLayout() {
       appState.current = nextState;
 
       if (nextState === "background") {
-        if (lockSuppression.current) return; // Picker/Share-Sheet ist offen -> NICHT sperren
+        if (lockSuppression.current) return;
         setAuthenticated(false);
       } else if (previousState === "background" && nextState === "active") {
         if (lockSuppression.current) return;
