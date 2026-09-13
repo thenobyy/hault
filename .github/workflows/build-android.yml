@@ -36,6 +36,8 @@ jobs:
       - name: Build release APK
         working-directory: android
         run: ./gradlew assembleRelease
+        env:
+          SENTRY_DISABLE_AUTO_UPLOAD: true
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
