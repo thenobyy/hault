@@ -17,3 +17,5 @@ export async function saveImagePermanently(tempUri: string, personId: number, in
   sourceFile.copy(destFile);
   return filename; // nur der Name, nicht destFile.uri
 }
+
+export const lockSuppression = { current: false };

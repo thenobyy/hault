@@ -1,6 +1,6 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { getFilenameFromPath, getFullImagePath, saveImagePermanently } from "@/components/utils";
+import { getFilenameFromPath, getFullImagePath, lockSuppression, saveImagePermanently } from "@/components/utils";
 import * as Sentry from "@sentry/react-native";
 import { BlurView } from "expo-blur";
 import { File } from "expo-file-system";
@@ -49,17 +49,17 @@ export default function NewPerson() {
       Alert.alert("Permission required", "Permission to access the media library is required.");
       return;
     }
-
+    lockSuppression.current = true;
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images", "videos"],
       allowsMultipleSelection: false,
       allowsEditing: true,
       quality: 1,
     });
-
     if (!result.canceled) {
       setImage(result.assets[0].uri as string);
     }
+    lockSuppression.current = false;
   };
 
   const pickGalaryImages = async () => {
@@ -72,12 +72,14 @@ export default function NewPerson() {
 
     let result;
     try {
+      lockSuppression.current = true;
       result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images", "videos"],
         allowsMultipleSelection: true,
         allowsEditing: false,
         quality: 1,
       });
+      lockSuppression.current = false;
     } catch (e) {
       Alert.alert(
         "Fehler beim Laden",

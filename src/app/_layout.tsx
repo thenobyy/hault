@@ -1,6 +1,7 @@
 import { AnimatedSplashOverlay } from "@/components/animated-icon";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { lockSuppression } from "@/components/utils";
 import * as Sentry from "@sentry/react-native";
 import { useDrizzleStudio } from "expo-drizzle-studio-plugin";
 import * as LocalAuthentication from "expo-local-authentication";
@@ -27,6 +28,7 @@ export default function RootLayout() {
   const [isAuthenticated, setAuthenticated] = useState(false);
   const appState = useRef(AppState.currentState);
   let settings: UserSettings;
+  const suppressLock = useRef(false);
 
   Sentry.init({
     dsn: "https://53fd710bd934b9d5e15bc60b5a6e064d@o4508585788833792.ingest.de.sentry.io/4512074411278416",
@@ -66,8 +68,10 @@ export default function RootLayout() {
       appState.current = nextState;
 
       if (nextState === "background") {
+        if (lockSuppression.current) return; // Picker/Share-Sheet ist offen -> NICHT sperren
         setAuthenticated(false);
       } else if (previousState === "background" && nextState === "active") {
+        if (lockSuppression.current) return;
         authenticate();
       }
     });
@@ -102,24 +106,26 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen
           name="(tabs)"
-          options={{
-            gestureDirection: "vertical",
-          }}
+          options={
+            {
+              // gestureDirection: "vertical",
+            }
+          }
         />
         <Stack.Screen
           name="new_person"
           options={{
             presentation: "fullScreenModal",
-            fullScreenGestureEnabled: true,
-            gestureDirection: "vertical",
+            // fullScreenGestureEnabled: true,
+            // gestureDirection: "vertical",
           }}
         />
         <Stack.Screen
           name="persons/[id]"
           options={{
             presentation: "fullScreenModal",
-            fullScreenGestureEnabled: true,
-            gestureDirection: "vertical",
+            // fullScreenGestureEnabled: true,
+            // gestureDirection: "vertical",
           }}
         />
       </Stack>
