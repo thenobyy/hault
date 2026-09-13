@@ -5,7 +5,7 @@ import { Host, HStack, Toggle, VStack } from "@expo/ui/swift-ui";
 import { Directory, Paths } from "expo-file-system";
 import { RotateCcw } from "lucide-react-native";
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, View } from "react-native";
+import { Platform, Pressable, ScrollView, StyleSheet, Switch, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { db } from "../../../db/database";
 
@@ -64,29 +64,51 @@ export default function SettingsPage() {
         </View>
         <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
           <View style={styles.settingsBox}>
-            <Host style={{ flex: 1, width: "auto", padding: 55 }}>
-              <HStack>
-                <VStack spacing={22}>
-                  <Toggle
-                    isOn={faceID}
-                    onIsOnChange={(value) => {
-                      saveSettings(value, "app_lock");
-                    }}
-                    label="Face ID"
-                    systemImage="faceid"
-                  />
-                  <Toggle
-                    label="Developer Mode"
-                    isOn={devMode}
-                    onIsOnChange={(value) => {
-                      saveSettings(value, "devMode");
-                    }}
-                    systemImage="command"
-                  />
-                  <Toggle label="Enable feature" />
-                </VStack>
-              </HStack>
-            </Host>
+            {Platform.OS === "ios" ? (
+              <Host style={{ flex: 1, width: "auto", padding: 55 }}>
+                <HStack>
+                  <VStack spacing={22}>
+                    <Toggle
+                      isOn={faceID}
+                      onIsOnChange={(value) => {
+                        saveSettings(value, "app_lock");
+                      }}
+                      label="Face ID"
+                      systemImage="faceid"
+                    />
+                    <Toggle
+                      label="Developer Mode"
+                      isOn={devMode}
+                      onIsOnChange={(value) => {
+                        saveSettings(value, "devMode");
+                      }}
+                      systemImage="command"
+                    />
+                    <Toggle label="Enable feature" />
+                  </VStack>
+                </HStack>
+              </Host>
+            ) : (
+              <View style={{ flex: 1, width: "auto", padding: 55 }}>
+                <View style={{ flexDirection: "row" }}>
+                  <View style={{ flexDirection: "column", gap: 22 }}>
+                    <Switch
+                      value={faceID}
+                      onValueChange={(value) => {
+                        saveSettings(value, "app_lock");
+                      }}
+                    />
+                    <Switch
+                      value={devMode}
+                      onValueChange={(value) => {
+                        saveSettings(value, "devMode");
+                      }}
+                    />
+                    <Switch />
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
           <Pressable
             style={{

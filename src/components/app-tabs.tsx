@@ -10,13 +10,13 @@ export default function AppTabs({ set }: { set: UserSettings | null }) {
 
   return (
     <NativeTabs
-      backgroundColor={colors.background}
+      // backgroundColor={colors.background}
       indicatorColor={colors.backgroundElement}
       labelStyle={{ selected: { color: colors.text } }}
     >
       <NativeTabs.Trigger name="index">
         <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: "house", selected: "house.fill" }} renderingMode="template" />
+        <NativeTabs.Trigger.Icon sf={{ default: "house", selected: "house.fill" }} md="home" renderingMode="template" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="explore" hidden={!set?.devMode}>
@@ -29,9 +29,10 @@ export default function AppTabs({ set }: { set: UserSettings | null }) {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
         <NativeTabs.Trigger.Label>Einstellungen</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon sf={{ default: "gear", selected: "gear" }} renderingMode="template" />
+        <NativeTabs.Trigger.Icon sf={{ default: "gear", selected: "gear" }} md="settings" renderingMode="template" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="search" role="search">
+        <NativeTabs.Trigger.Icon md="search" renderingMode="template" />
         <NativeTabs.Trigger.Label>Suchen</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>

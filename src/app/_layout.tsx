@@ -103,8 +103,6 @@ export default function RootLayout() {
         <Stack.Screen
           name="(tabs)"
           options={{
-            presentation: "fullScreenModal",
-            fullScreenGestureEnabled: true,
             gestureDirection: "vertical",
           }}
         />
