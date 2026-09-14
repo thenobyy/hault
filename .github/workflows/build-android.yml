@@ -1,48 +1,57 @@
-name: Build Android APK
+name: Build Android Release APK
 
 on:
   workflow_dispatch:
-
   push:
     branches: [master]
 
 jobs:
-  build-android:
-    name: Build Android APK
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Repo auschecken
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Node.js einrichten
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
+          node-version: 20
 
-      - name: Setup Java
+      - name: Java einrichten
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Abhängigkeiten installieren
+        run: npm install
 
-      - name: Generate Android project
-        run: npx expo prebuild --platform android
+      - name: Native Android-Projekt erzeugen
+        run: npx expo prebuild --platform android --non-interactive
 
-      - name: Build release APK
-        working-directory: android
-        run: ./gradlew assembleRelease
+      - name: Keystore aus Secret wiederherstellen
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/release.keystore
+
+      - name: build.gradle für Release-Signing patchen
+        run: node scripts/patch-android-signing.js
+
+      - name: Gradle-Wrapper ausführbar machen
+        run: chmod +x ./android/gradlew
+
+      - name: Release-APK bauen
         env:
+          ANDROID_KEYSTORE_PATH: release.keystore
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           SENTRY_DISABLE_AUTO_UPLOAD: true
+        run: |
+          cd android
+          ./gradlew assembleRelease
 
-      - name: Upload APK
+      - name: APK als Download bereitstellen
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
+          name: app-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
-          if-no-files-found: error
-          retention-days: 14
