@@ -11,6 +11,7 @@
     },
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.anonymous.hault",
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
@@ -18,6 +19,7 @@
       }
     },
     "android": {
+      "package": "com.anonymous.hault",
       "adaptiveIcon": {
         "backgroundColor": "#8c2929",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -30,7 +32,7 @@
         "android.permission.USE_FINGERPRINT",
         "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO"
-      ],
+      ]
     },
     "web": {
       "output": "static",
