@@ -15,7 +15,9 @@
       "icon": "./assets/images/icon.png",
       "infoPlist": {
         "CFBundleAllowMixedLocalizations": true,
-        "NSFaceIDUsageDescription": "Erlaube dieser App die Nutzung von Face ID für den Login."
+        "NSFaceIDUsageDescription": "Erlaube dieser App die Nutzung von Face ID für den Login.",
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
       }
     },
     "android": {
